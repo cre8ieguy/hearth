@@ -21,9 +21,11 @@ export interface Settings {
     name: string
     speakReplies: boolean
     continuousConversation: boolean
+    resetAfterMinutes: number // clear model context after idle (0 = never)
   }
   wakeWord: {
     enabled: boolean
+    engine: 'openwakeword' | 'porcupine'
     accessKey: string
     keyword: string
     sensitivity: number
@@ -195,6 +197,19 @@ export interface ServiceStatus {
 
 export type ViewName = 'dashboard' | 'assistant' | 'spotify' | 'calendar' | 'settings'
 
+// ---------- On-screen content panel (agent-driven) ----------
+export type ContentPanel =
+  | { kind: 'markdown'; title: string; markdown: string }
+  | { kind: 'web'; title: string; url: string }
+
+// Curated model choices for the Settings dropdown (exact API ids).
+export const MODEL_CHOICES: { id: string; label: string }[] = [
+  { id: 'claude-fable-5', label: 'Fable 5 — smartest, premium price ($10/$50 per MTok)' },
+  { id: 'claude-opus-5', label: 'Opus 5 — excellent, half the price ($5/$25)' },
+  { id: 'claude-sonnet-5', label: 'Sonnet 5 — fast & cheap, still great ($3/$15)' },
+  { id: 'claude-haiku-4-5', label: 'Haiku 4.5 — cheapest, simple tasks ($1/$5)' },
+]
+
 export const DEFAULT_SETTINGS: Settings = {
   anthropic: { apiKey: '', model: 'claude-fable-5', effort: 'low' },
   openai: {
@@ -203,8 +218,8 @@ export const DEFAULT_SETTINGS: Settings = {
     ttsModel: 'gpt-4o-mini-tts',
     ttsVoice: 'nova',
   },
-  assistant: { name: 'Jarvis', speakReplies: true, continuousConversation: false },
-  wakeWord: { enabled: false, accessKey: '', keyword: 'Jarvis', sensitivity: 0.6 },
+  assistant: { name: 'Jarvis', speakReplies: true, continuousConversation: false, resetAfterMinutes: 15 },
+  wakeWord: { enabled: true, engine: 'openwakeword', accessKey: '', keyword: 'Jarvis', sensitivity: 0.6 },
   spotify: { clientId: '', preferredDeviceName: '', tokens: null },
   google: { clientId: '', clientSecret: '', tokens: null },
   homeAssistant: { url: '', token: '' },

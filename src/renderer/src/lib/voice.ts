@@ -35,6 +35,33 @@ class VoiceController {
     useStore.getState().setVoiceState(v)
   }
 
+  /**
+   * Wake-word barge-in: whatever the assistant is doing, stop it and listen.
+   * Safe to call from any state.
+   */
+  async interruptAndListen(): Promise<void> {
+    switch (this.state) {
+      case 'idle':
+        await this.startListening()
+        break
+      case 'speaking':
+        this.stopSpeaking()
+        await this.startListening()
+        break
+      case 'thinking': {
+        void window.hearth.agent.cancel()
+        // Force out of 'thinking' so startListening's state guard passes;
+        // the cancelled ask() resolves to '' and leaves state alone after this.
+        this.setState('idle')
+        await this.startListening()
+        break
+      }
+      default:
+        // listening / transcribing — already on it
+        break
+    }
+  }
+
   /** Main entry — wired to the mic orb. */
   async toggle(): Promise<void> {
     switch (this.state) {
@@ -164,11 +191,19 @@ class VoiceController {
         this.setState('idle')
         return
       }
+      // Bare stop-phrases (usually said right after barging in) just end the
+      // exchange — they aren't questions for the assistant.
+      if (/^(stop|cancel|be quiet|quiet|silence|shut up|never ?mind|nothing|no thanks?|that's (all|enough)|ok(ay)?,? thanks?|thank you)[.!,\s]*$/i.test(text)) {
+        this.setState('idle')
+        return
+      }
       useStore.setState({ liveUser: text })
       this.setState('thinking')
       const answer = await window.hearth.agent.ask(text)
       if (!answer) {
-        this.setState('idle')
+        // Only clear our own state — a barge-in may already have started a
+        // fresh listening session, which must not be stomped back to idle.
+        if (this.state === 'thinking') this.setState('idle')
         return
       }
       const settings = useStore.getState().settings
@@ -182,7 +217,7 @@ class VoiceController {
       this.setState('idle')
     } catch (err) {
       useStore.setState({ liveError: err instanceof Error ? err.message : String(err) })
-      this.setState('idle')
+      if (this.state === 'thinking' || this.state === 'transcribing') this.setState('idle')
     }
   }
 

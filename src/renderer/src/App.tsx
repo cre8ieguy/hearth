@@ -8,6 +8,7 @@ import AssistantOverlay from './components/AssistantOverlay'
 import NowPlayingBar from './components/NowPlayingBar'
 import TimerAlert from './components/TimerAlert'
 import Screensaver from './components/Screensaver'
+import ContentPanel from './components/ContentPanel'
 import Dashboard from './views/Dashboard'
 import AssistantView from './views/AssistantView'
 import SpotifyView from './views/SpotifyView'
@@ -77,6 +78,7 @@ export default function App(): React.JSX.Element {
         {view === 'spotify' && <SpotifyView />}
         {view === 'calendar' && <CalendarView />}
         {view === 'settings' && <SettingsView />}
+        <ContentPanel />
         <NowPlayingBar />
         <AssistantOverlay />
         <VoiceOrb />

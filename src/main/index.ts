@@ -1,7 +1,7 @@
-import { app, BrowserWindow, powerSaveBlocker, protocol, session } from 'electron'
+import { app, BrowserWindow, net, powerSaveBlocker, protocol, session } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import { getSettings, onSettingsChange } from './settings'
 import { registerIpc, serviceStatus } from './ipc'
 import { setMainWindow, send } from './window'
@@ -14,9 +14,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Ambient YouTube screensavers should start without a user gesture.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 
-// Custom scheme that streams photos from the configured folder only.
+// media:// streams photos from the configured folder; app:// serves the packaged
+// renderer (fetch() doesn't work over file://, and the wake-word engine needs to
+// fetch its ONNX models and WASM runtime).
 protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { supportFetchAPI: true, stream: true } },
+  {
+    scheme: 'app',
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
 ])
 
 if (!app.requestSingleInstanceLock()) {
@@ -61,6 +67,8 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: false,
       spellcheck: false,
+      // The assistant can open live websites in a guest <webview> panel.
+      webviewTag: true,
     },
   })
   setMainWindow(win)
@@ -81,7 +89,7 @@ function createWindow(): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    void win.loadFile(path.join(__dirname, '../renderer/index.html'))
+    void win.loadURL('app://bundle/index.html')
   }
 
   if (process.env.SHOT_DIR) scheduleScreenshots(win, process.env.SHOT_DIR)
@@ -109,6 +117,18 @@ function scheduleScreenshots(target: BrowserWindow, dir: string): void {
 
 app.whenReady().then(() => {
   protocol.handle('media', serveMedia)
+
+  // Serve the built renderer over app:// so fetch()/import() work when packaged.
+  const rendererRoot = path.resolve(__dirname, '../renderer')
+  protocol.handle('app', (request) => {
+    const url = new URL(request.url)
+    const rel = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html'
+    const file = path.resolve(rendererRoot, rel)
+    if (file !== rendererRoot && !file.startsWith(rendererRoot + path.sep)) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    return net.fetch(pathToFileURL(file).toString())
+  })
 
   // The renderer needs the microphone for push-to-talk.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {

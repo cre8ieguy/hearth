@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { voice } from '../lib/voice'
-import type { GeocodeResult, Settings } from '@shared/types'
+import { MODEL_CHOICES, type GeocodeResult, type Settings } from '@shared/types'
 
 // ---------- small form primitives ----------
 
@@ -251,13 +251,17 @@ export default function SettingsView(): React.JSX.Element {
             placeholder="sk-ant-…"
             hint="Create one at console.anthropic.com → API keys. See docs/setup-anthropic.md."
           />
+          <SelectField
+            label="Model"
+            value={
+              MODEL_CHOICES.some((m) => m.id === s.anthropic.model)
+                ? s.anthropic.model
+                : MODEL_CHOICES[0].id
+            }
+            onChange={(v) => void update({ anthropic: { model: v } })}
+            options={MODEL_CHOICES.map((m) => ({ value: m.id, label: m.label }))}
+          />
           <div className="flex gap-4">
-            <TextField
-              label="Model"
-              value={s.anthropic.model}
-              onCommit={(v) => void update({ anthropic: { model: v || 'claude-fable-5' } })}
-              width="flex-1"
-            />
             <SelectField
               label="Effort (speed ↔ depth)"
               value={s.anthropic.effort}
@@ -266,6 +270,19 @@ export default function SettingsView(): React.JSX.Element {
                 { value: 'low', label: 'Low — snappy (recommended)' },
                 { value: 'medium', label: 'Medium' },
                 { value: 'high', label: 'High — most thorough' },
+              ]}
+              width="flex-1"
+            />
+            <SelectField
+              label="Forget conversation after"
+              value={String(s.assistant.resetAfterMinutes)}
+              onChange={(v) => void update({ assistant: { resetAfterMinutes: Number(v) } })}
+              options={[
+                { value: '5', label: '5 min idle' },
+                { value: '15', label: '15 min idle (recommended)' },
+                { value: '30', label: '30 min idle' },
+                { value: '60', label: '1 hour idle' },
+                { value: '0', label: 'Never (costs more)' },
               ]}
               width="flex-1"
             />
@@ -331,35 +348,22 @@ export default function SettingsView(): React.JSX.Element {
 
           <div className="mt-2 flex flex-col gap-4 rounded-xl bg-white/5 p-4">
             <Toggle
-              label={`Wake word — hands-free “Hey ${s.wakeWord.keyword}”`}
-              hint="Listens on-device (nothing is streamed). Needs a free Picovoice AccessKey."
+              label='Wake word — hands-free "Hey Jarvis"'
+              hint="Listens on-device; nothing is streamed anywhere. Also interrupts the assistant mid-answer."
               checked={s.wakeWord.enabled}
               onChange={(v) => void update({ wakeWord: { enabled: v } })}
             />
-            <TextField
-              label="Picovoice AccessKey"
-              secret
-              value={s.wakeWord.accessKey}
-              onCommit={(v) => void update({ wakeWord: { accessKey: v } })}
-              hint="Free at console.picovoice.ai — see docs/setup-wake-word.md."
-            />
             <div className="flex gap-4">
               <SelectField
-                label="Wake word"
-                value={s.wakeWord.keyword}
-                onChange={(v) => void update({ wakeWord: { keyword: v } })}
+                label="Engine"
+                value={s.wakeWord.engine}
+                onChange={(v) =>
+                  void update({ wakeWord: { engine: v as Settings['wakeWord']['engine'] } })
+                }
                 options={[
-                  'Jarvis',
-                  'Computer',
-                  'Porcupine',
-                  'Bumblebee',
-                  'Terminator',
-                  'Grasshopper',
-                  'Blueberry',
-                  'Grapefruit',
-                  'Americano',
-                  'Picovoice',
-                ].map((k) => ({ value: k, label: k }))}
+                  { value: 'openwakeword', label: 'Built-in "Hey Jarvis" — free, no account' },
+                  { value: 'porcupine', label: 'Picovoice Porcupine — needs AccessKey' },
+                ]}
                 width="flex-1"
               />
               <SelectField
@@ -371,11 +375,40 @@ export default function SettingsView(): React.JSX.Element {
                   { value: '0.5', label: 'Medium-low' },
                   { value: '0.6', label: 'Balanced' },
                   { value: '0.7', label: 'High' },
-                  { value: '0.8', label: 'Very high' },
+                  { value: '0.8', label: 'Very high (across the room)' },
                 ]}
                 width="flex-1"
               />
             </div>
+            {s.wakeWord.engine === 'porcupine' && (
+              <>
+                <TextField
+                  label="Picovoice AccessKey"
+                  secret
+                  value={s.wakeWord.accessKey}
+                  onCommit={(v) => void update({ wakeWord: { accessKey: v } })}
+                  hint="From console.picovoice.ai (if they approve an account) — otherwise use the built-in engine."
+                />
+                <SelectField
+                  label="Wake word (Porcupine)"
+                  value={s.wakeWord.keyword}
+                  onChange={(v) => void update({ wakeWord: { keyword: v } })}
+                  options={[
+                    'Jarvis',
+                    'Computer',
+                    'Porcupine',
+                    'Bumblebee',
+                    'Terminator',
+                    'Grasshopper',
+                    'Blueberry',
+                    'Grapefruit',
+                    'Americano',
+                    'Picovoice',
+                  ].map((k) => ({ value: k, label: k }))}
+                  width="w-1/2"
+                />
+              </>
+            )}
             <WakeStatusLine />
           </div>
         </Section>

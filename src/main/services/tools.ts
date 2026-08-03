@@ -186,6 +186,42 @@ const CUSTOM_TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'show_content',
+    description:
+      'Display formatted content on this screen in a large readable panel. ALWAYS call this instead of reading long content aloud: recipes, step-by-step instructions, lists, itineraries, comparisons, articles, code. Put the FULL content in markdown here, then keep your spoken reply to one or two sentences (e.g. "The recipe is up on the screen — it takes about 40 minutes."). ',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Short panel title, e.g. "Pad Thai — serves 4".' },
+        markdown: {
+          type: 'string',
+          description: 'Full content as markdown (headings, lists, bold supported).',
+        },
+      },
+      required: ['title', 'markdown'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'show_webpage',
+    description:
+      'Open a live website on this screen in a browser panel. Call when the user asks to see a specific site or page ("pull up BBC Good Food", "show me that article"), typically with a URL from your web search results. Prefer show_content for answers you can write yourself.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'Full https:// URL.' },
+        title: { type: 'string', description: 'Short label for the panel header.' },
+      },
+      required: ['url'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'hide_content',
+    description: 'Close the on-screen content/browser panel. Call for "close that", "clear the screen".',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
 ]
 
 /** Human-readable activity labels shown in the UI while a tool runs. */
@@ -205,6 +241,9 @@ export const TOOL_LABELS: Record<string, string> = {
   list_timers: 'Checking timers',
   show_screensaver: 'Changing the display',
   show_view: 'Navigating',
+  show_content: 'Putting it on screen',
+  show_webpage: 'Opening the page',
+  hide_content: 'Clearing the screen',
 }
 
 export function buildTools(): unknown[] {
@@ -353,6 +392,29 @@ export async function dispatchTool(name: string, input: Input): Promise<string> 
     case 'show_view':
       send('ui:navigate', String(input.view))
       return `Showing the ${String(input.view)} screen.`
+
+    case 'show_content':
+      send('ui:content', {
+        kind: 'markdown',
+        title: String(input.title),
+        markdown: String(input.markdown),
+      })
+      return 'Content is now displayed on screen. Keep your spoken reply to one or two sentences.'
+
+    case 'show_webpage': {
+      const url = String(input.url)
+      if (!/^https?:\/\//i.test(url)) throw new Error('show_webpage needs a full http(s):// URL.')
+      send('ui:content', {
+        kind: 'web',
+        title: String(input.title ?? new URL(url).hostname),
+        url,
+      })
+      return `Opened ${url} on screen.`
+    }
+
+    case 'hide_content':
+      send('ui:content', null)
+      return 'Screen panel closed.'
 
     default:
       throw new Error(`Unknown tool: ${name}`)

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type {
   AgentEvent,
   ChatMessage,
+  ContentPanel,
   NowPlaying,
   ServiceStatus,
   Settings,
@@ -37,8 +38,10 @@ interface HearthStore {
   updateStatus: string
 
   screensaver: ScreensaverState | null
+  contentPanel: ContentPanel | null
 
   setView: (v: ViewName) => void
+  setContentPanel: (c: ContentPanel | null) => void
   setVoiceState: (v: VoiceState) => void
   setMicLevel: (level: number) => void
   setScreensaver: (s: ScreensaverState | null) => void
@@ -67,8 +70,10 @@ export const useStore = create<HearthStore>((set) => ({
   updateStatus: '',
 
   screensaver: null,
+  contentPanel: null,
 
   setView: (view) => set({ view }),
+  setContentPanel: (contentPanel) => set({ contentPanel }),
   setVoiceState: (voiceState) => set({ voiceState }),
   setMicLevel: (micLevel) => set({ micLevel }),
   setScreensaver: (screensaver) => set({ screensaver }),
@@ -140,7 +145,10 @@ export function initStore(): void {
   window.hearth.on('agent:history', (chat) => set({ chat: chat as ChatMessage[] }))
   window.hearth.on('agent:event', (event) => handleAgentEvent(event as AgentEvent))
   window.hearth.on('ui:navigate', (view) => {
-    set({ view: view as ViewName, screensaver: null })
+    set({ view: view as ViewName, screensaver: null, contentPanel: null })
+  })
+  window.hearth.on('ui:content', (panel) => {
+    set({ contentPanel: panel as ContentPanel | null, screensaver: null })
   })
   window.hearth.on('updater:status', (updateStatus) => set({ updateStatus: updateStatus as string }))
   window.hearth.on('ui:screensaver', (payload) => {

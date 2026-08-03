@@ -10,9 +10,11 @@ Built with Electron + React + TypeScript. Developed on macOS, deployed to Window
 
 ## What it does
 
-- 🎙️ **Voice assistant** — say **"Hey Jarvis"** (on-device wake word) or tap the orb, talk, get a
-  spoken answer. Streaming responses, barge-in (tap while it's speaking to interrupt), optional
-  continuous conversation mode.
+- 🎙️ **Voice assistant** — say **"Hey Jarvis"** (on-device wake word, no account needed) or tap
+  the orb. Say "Hey Jarvis" mid-answer to **interrupt it**, Alexa-style; "stop" / "never mind"
+  just ends the exchange. Streaming responses, optional continuous conversation mode.
+- 📖 **Screen content** — ask for a recipe or an article and it puts the full thing **on the
+  display** (rendered, scrollable, or a live website) while speaking only a short summary.
 - 🧠 **Claude Fable 5 agent** — tool-calling loop with built-in web search, plus automatic
   server-side fallback to Claude Opus 4.8 if a request is declined by safety filters.
 - 🎧 **Spotify** — "play some jazz", "skip", "turn it down", "queue up Bohemian Rhapsody". Controls
@@ -36,7 +38,9 @@ Built with Electron + React + TypeScript. Developed on macOS, deployed to Window
 | [Spotify app + Client ID](docs/setup-spotify.md) | Music | Free dev app; **Premium account required** |
 | [Google OAuth client](docs/setup-google.md) | Calendar | Free |
 | [Home Assistant token](docs/setup-home-assistant.md) | Smart home | Free (needs an HA install) |
-| [Picovoice AccessKey](docs/setup-wake-word.md) | "Hey Jarvis" wake word | Free for personal use |
+
+The **"Hey Jarvis" wake word needs nothing** — it's built in and on-device
+([details](docs/setup-wake-word.md)).
 
 Everything is optional except the two API keys — the app degrades gracefully and its Settings
 screen shows what's connected.
@@ -98,12 +102,15 @@ next restart. Status lives in Settings → About.
 
 ## Talking to it
 
-- **Say "Hey Jarvis"** (Settings → Voice → Wake word, needs the free Picovoice key) — a soft blip
-  means it's listening. Works from the screensaver too.
+- **Say "Hey Jarvis"** — a soft blip means it's listening. Works from the screensaver too, no
+  keys or accounts needed (on by default).
+- **Interrupt it** by saying "Hey Jarvis" while it's talking (or tap the orb). Follow with a new
+  question, or just "stop" / "never mind" to end it.
 - Or **tap the orb** → it listens → stops automatically when you stop talking (or tap again).
-- Tap the orb **while it's speaking** to interrupt and ask something else.
 - **Continuous conversation** (Settings → Voice): it re-opens the mic after each answer.
 - Everything also works by typing in the **Chat** view.
+- By default it forgets the conversation after 15 quiet minutes (Settings → Assistant brain) —
+  fresh context, lower token bills.
 
 Try: *"What should I wear tomorrow?" · "Play the new Beyoncé album" · "Add soccer practice
 Saturday at 9am to the family calendar" · "Turn the kitchen lights blue" · "Set a pasta timer for

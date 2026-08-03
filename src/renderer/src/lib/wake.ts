@@ -1,15 +1,19 @@
 import { useStore } from '../store'
 import { voice } from './voice'
+import { OpenWakeWordEngine } from './oww'
 import type { PorcupineWorker } from '@picovoice/porcupine-web'
 
 /**
- * Always-on wake-word detection ("Hey Jarvis…") using Picovoice Porcupine.
- * Runs fully on-device (WASM in the renderer); nothing is streamed anywhere.
- * The engine only *triggers* when the assistant is idle, so it can't
- * interrupt itself mid-answer or re-trigger while listening.
+ * Always-on wake-word detection with two engines:
+ *  - openwakeword (default): free "Hey Jarvis" model, fully on-device, no account.
+ *  - porcupine: Picovoice engine, more keyword choices, needs an AccessKey.
+ *
+ * Detection also acts as barge-in — saying the wake word while the assistant is
+ * speaking (or thinking) interrupts it and starts listening, Alexa-style.
  */
 
-let worker: PorcupineWorker | null = null
+let porcupine: PorcupineWorker | null = null
+let oww: OpenWakeWordEngine | null = null
 let signature = ''
 let starting = false
 
@@ -38,62 +42,75 @@ function wakeBlip(): void {
 
 function onDetection(): void {
   const s = useStore.getState()
-  if (s.voiceState !== 'idle' || s.turnActive) return
+  // Already capturing the user's voice — nothing to do.
+  if (s.voiceState === 'listening' || s.voiceState === 'transcribing') return
   wakeBlip()
   s.setScreensaver(null)
-  void voice.startListening()
+  // Interrupts speaking/thinking states internally, then starts listening.
+  void voice.interruptAndListen()
 }
 
-async function stop(): Promise<void> {
-  const current = worker
-  worker = null
-  if (!current) return
-  try {
-    const { WebVoiceProcessor } = await import('@picovoice/web-voice-processor')
-    await WebVoiceProcessor.unsubscribe(current)
-  } catch {
-    // already gone
+async function stopEngines(): Promise<void> {
+  const p = porcupine
+  porcupine = null
+  if (p) {
+    try {
+      const { WebVoiceProcessor } = await import('@picovoice/web-voice-processor')
+      await WebVoiceProcessor.unsubscribe(p)
+    } catch {
+      // already gone
+    }
+    try {
+      p.terminate()
+    } catch {
+      // already terminated
+    }
   }
-  try {
-    current.terminate()
-  } catch {
-    // already terminated
-  }
+  oww?.dispose()
+  oww = null
 }
 
 /** Reconcile the engine with current settings. Cheap to call repeatedly. */
 export async function syncWakeWord(): Promise<void> {
   const conf = useStore.getState().settings?.wakeWord
-  const sig = conf ? `${conf.enabled}|${conf.accessKey}|${conf.keyword}|${conf.sensitivity}` : ''
+  const sig = conf
+    ? `${conf.enabled}|${conf.engine}|${conf.accessKey}|${conf.keyword}|${conf.sensitivity}`
+    : ''
   if (sig === signature || starting) return
   starting = true
   signature = sig
-  await stop()
-
-  if (!conf?.enabled) {
-    setStatus('off')
-    starting = false
-    return
-  }
-  if (!conf.accessKey) {
-    setStatus('Add a free Picovoice AccessKey to enable the wake word.')
-    starting = false
-    return
-  }
+  await stopEngines()
 
   try {
-    const { PorcupineWorker } = await import('@picovoice/porcupine-web')
-    const { WebVoiceProcessor } = await import('@picovoice/web-voice-processor')
-    worker = await PorcupineWorker.create(
-      conf.accessKey,
-      [{ builtin: conf.keyword as never, sensitivity: conf.sensitivity }],
-      onDetection,
-      { publicPath: '/porcupine_params.pv' },
-    )
-    await WebVoiceProcessor.subscribe(worker)
-    setStatus(`Listening for “${conf.keyword}”`)
+    if (!conf?.enabled) {
+      setStatus('off')
+      return
+    }
+
+    if (conf.engine === 'porcupine') {
+      if (!conf.accessKey) {
+        setStatus('Porcupine needs a Picovoice AccessKey — or switch to the built-in engine.')
+        return
+      }
+      const { PorcupineWorker } = await import('@picovoice/porcupine-web')
+      const { WebVoiceProcessor } = await import('@picovoice/web-voice-processor')
+      porcupine = await PorcupineWorker.create(
+        conf.accessKey,
+        [{ builtin: conf.keyword as never, sensitivity: conf.sensitivity }],
+        onDetection,
+        { publicPath: 'porcupine_params.pv' },
+      )
+      await WebVoiceProcessor.subscribe(porcupine)
+      setStatus(`Listening for “${conf.keyword}” (Porcupine)`)
+      return
+    }
+
+    // Default: openWakeWord — sensitivity 0.4-0.8 maps to score threshold 0.7-0.3.
+    const threshold = Math.min(0.7, Math.max(0.3, 1.1 - conf.sensitivity))
+    oww = await OpenWakeWordEngine.create(threshold, onDetection)
+    setStatus('Listening for “Hey Jarvis”')
   } catch (err) {
-    await stop()
+    await stopEngines()
     const msg = err instanceof Error ? err.message : String(err)
     setStatus(`Wake word error: ${msg.slice(0, 200)}`)
   } finally {

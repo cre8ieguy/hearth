@@ -10,6 +10,7 @@ const EVENT_CHANNELS = new Set([
   'timers:changed',
   'ui:navigate',
   'ui:screensaver',
+  'ui:content',
   'calendar:changed',
   'updater:status',
 ])
