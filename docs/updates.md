@@ -31,14 +31,17 @@ mid-use. Settings → About shows update status and has a manual "Check for upda
 
 ```bash
 npm version patch
-GH_TOKEN=github_pat_… npm run release
 git push --follow-tags
+GH_TOKEN=$(gh auth token) npm run release
 ```
 
 - `npm version patch` bumps `0.1.0 → 0.1.1`, commits, and tags (use `minor` / `major` when it
   fits). It requires a clean git tree — commit your changes first.
+- `git push --follow-tags` must run **before** the release — GitHub refuses to publish a
+  (non-draft) release for a tag it doesn't have yet.
 - `npm run release` builds the Windows installer and uploads it, plus the `latest.yml` update
-  manifest, to a GitHub Release.
+  manifest, to the GitHub Release for that tag. (With the GitHub CLI signed in,
+  `$(gh auth token)` saves you managing a separate token.)
 - That's it. Kiosks pick it up within ~2 hours and install overnight.
 
 ## How the kiosk behaves

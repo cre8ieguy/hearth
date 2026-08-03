@@ -75,7 +75,7 @@ You only ever install by hand once. After the one-time GitHub setup in
 [docs/updates.md](docs/updates.md), shipping a change from the Mac is:
 
 ```bash
-npm version patch && GH_TOKEN=… npm run release && git push --follow-tags
+npm version patch && git push --follow-tags && GH_TOKEN=$(gh auth token) npm run release
 ```
 
 The kiosk checks every 2 hours, downloads silently, and installs overnight (~3:30am) or on its
