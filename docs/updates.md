@@ -62,3 +62,12 @@ GH_TOKEN=$(gh auth token) npm run release
 - To test the pipeline: bump the version, release, then on the kiosk press
   **Settings → About → Check for updates** — you should see it download and offer to install
   overnight; restart the app to apply immediately.
+- **If a release ends up missing assets** (rare upload flake — check with
+  `gh release view vX.Y.Z`), the built files are still in `release/`; attach them manually:
+
+  ```bash
+  gh release upload vX.Y.Z release/Hearth-X.Y.Z-setup.exe release/Hearth-X.Y.Z-portable.exe release/latest.yml --clobber
+  ```
+
+  `latest.yml` is the piece the updater actually reads — a release without it is invisible to
+  kiosks.
