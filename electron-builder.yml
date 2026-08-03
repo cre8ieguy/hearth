@@ -9,6 +9,7 @@ publish:
   provider: github
   owner: cre8ieguy
   repo: hearth
+  releaseType: release
 files:
   - out/**/*
   - package.json
