@@ -7,7 +7,7 @@ directories:
 # (needs GH_TOKEN). See docs/updates.md.
 publish:
   provider: github
-  owner: YOUR_GITHUB_USERNAME
+  owner: cre8ieguy
   repo: hearth
 files:
   - out/**/*
