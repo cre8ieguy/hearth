@@ -2,6 +2,13 @@ appId: biz.cre8ive.hearth
 productName: Hearth
 directories:
   output: release
+# Auto-update feed. One-time setup: create this GitHub repo, push the code,
+# set `owner` to your GitHub username, then release with `npm run release`
+# (needs GH_TOKEN). See docs/updates.md.
+publish:
+  provider: github
+  owner: YOUR_GITHUB_USERNAME
+  repo: hearth
 files:
   - out/**/*
   - package.json

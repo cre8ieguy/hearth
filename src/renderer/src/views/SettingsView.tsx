@@ -166,6 +166,21 @@ function ConnectButton({
   )
 }
 
+function UpdateRow(): React.JSX.Element {
+  const updateStatus = useStore((s) => s.updateStatus)
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => void window.hearth.system.checkUpdates()}
+        className="rounded-xl bg-white/10 px-5 py-3 text-sm hover:bg-white/15"
+      >
+        Check for updates
+      </button>
+      {updateStatus && <span className="text-xs text-white/45">{updateStatus}</span>}
+    </div>
+  )
+}
+
 function WakeStatusLine(): React.JSX.Element {
   const wakeStatus = useStore((s) => s.wakeStatus)
   const listening = wakeStatus.startsWith('Listening')
@@ -639,6 +654,7 @@ export default function SettingsView(): React.JSX.Element {
             Hearth v{version} — a Claude-powered home display. Settings and sign-ins are stored
             locally on this device.
           </p>
+          <UpdateRow />
           <div className="flex gap-3">
             <button
               onClick={() => void window.hearth.agent.reset()}

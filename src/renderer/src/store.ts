@@ -34,6 +34,7 @@ interface HearthStore {
   turnActive: boolean
   lastTurnEndedAt: number
   wakeStatus: string
+  updateStatus: string
 
   screensaver: ScreensaverState | null
 
@@ -63,6 +64,7 @@ export const useStore = create<HearthStore>((set) => ({
   turnActive: false,
   lastTurnEndedAt: 0,
   wakeStatus: 'off',
+  updateStatus: '',
 
   screensaver: null,
 
@@ -128,6 +130,7 @@ export function initStore(): void {
     (nowPlaying) => set({ nowPlaying }),
     () => undefined,
   )
+  void window.hearth.system.updateStatus().then((updateStatus) => set({ updateStatus }))
 
   window.hearth.on('settings:changed', (settings) => set({ settings: settings as Settings }))
   window.hearth.on('status:changed', (status) => set({ status: status as ServiceStatus }))
@@ -139,6 +142,7 @@ export function initStore(): void {
   window.hearth.on('ui:navigate', (view) => {
     set({ view: view as ViewName, screensaver: null })
   })
+  window.hearth.on('updater:status', (updateStatus) => set({ updateStatus: updateStatus as string }))
   window.hearth.on('ui:screensaver', (payload) => {
     const p = payload as { mode: 'photos' | 'youtube' | 'off'; preset?: string }
     if (p.mode === 'off') set({ screensaver: null })

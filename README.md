@@ -69,6 +69,18 @@ Cross-compiles from macOS. Output lands in `release/`:
 Copy the installer to the Windows PC and run it. The binary is unsigned, so SmartScreen will warn
 once — click **More info → Run anyway**.
 
+### Updating it later — automatically
+
+You only ever install by hand once. After the one-time GitHub setup in
+[docs/updates.md](docs/updates.md), shipping a change from the Mac is:
+
+```bash
+npm version patch && GH_TOKEN=… npm run release && git push --follow-tags
+```
+
+The kiosk checks every 2 hours, downloads silently, and installs overnight (~3:30am) or on its
+next restart. Status lives in Settings → About.
+
 ## Setting up the wall PC (Windows)
 
 1. **Install Hearth** from the installer above and launch it.

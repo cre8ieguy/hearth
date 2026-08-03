@@ -11,6 +11,7 @@ const EVENT_CHANNELS = new Set([
   'ui:navigate',
   'ui:screensaver',
   'calendar:changed',
+  'updater:status',
 ])
 
 const api = {
@@ -69,6 +70,8 @@ const api = {
   system: {
     version: () => ipcRenderer.invoke('system:version'),
     quit: () => ipcRenderer.invoke('system:quit'),
+    checkUpdates: () => ipcRenderer.invoke('updater:check'),
+    updateStatus: () => ipcRenderer.invoke('updater:status'),
   },
   on: (channel: string, listener: (...args: unknown[]) => void) => {
     if (!EVENT_CHANNELS.has(channel)) {

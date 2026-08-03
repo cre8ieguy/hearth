@@ -7,6 +7,7 @@ import { registerIpc, serviceStatus } from './ipc'
 import { setMainWindow, send } from './window'
 import { serveMedia } from './services/photos'
 import * as spotify from './services/spotify'
+import { startAutoUpdater } from './services/updater'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -119,6 +120,7 @@ app.whenReady().then(() => {
   applyKeepAwake()
   applyLoginItem()
   spotify.startPolling()
+  void startAutoUpdater()
 
   onSettingsChange((s) => {
     applyKeepAwake()

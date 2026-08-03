@@ -10,6 +10,7 @@ import * as ha from './services/homeassistant'
 import * as weather from './services/weather'
 import * as photos from './services/photos'
 import * as timers from './services/timers'
+import { checkForUpdatesNow, getUpdateStatus } from './services/updater'
 
 export function serviceStatus(): ServiceStatus {
   const s = getSettings()
@@ -85,6 +86,8 @@ export function registerIpc(): void {
   // ---------- system ----------
   ipcMain.handle('system:version', () => app.getVersion())
   ipcMain.handle('system:quit', () => app.quit())
+  ipcMain.handle('updater:check', () => checkForUpdatesNow())
+  ipcMain.handle('updater:status', () => getUpdateStatus())
 
   // Broadcast settings changes so every view stays in sync.
   onSettingsChange((s) => {
