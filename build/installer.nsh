@@ -19,6 +19,12 @@
     nsExec::Exec 'taskkill /F /IM Hearth.exe /T'
     Goto hearth_wait_unlock
   hearth_unlocked:
+  ; The uninstall-old-version step is the fragile part of updates (exit 2 when
+  ; any old file resists deletion — e.g. files created by a once-elevated
+  ; install). Deleting the old uninstaller makes electron-builder skip that
+  ; step entirely and overwrite in place, which is what we want for updates.
+  Delete "$LOCALAPPDATA\Programs\hearth\Uninstall Hearth.exe"
+  ClearErrors
 !macroend
 
 !macro customUnInit
