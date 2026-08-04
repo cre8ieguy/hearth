@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain } from 'electron'
+import { app, dialog, ipcMain, shell } from 'electron'
 import { getSettings, updateSettings, onSettingsChange, type DeepPartial } from './settings'
 import type { Settings, ServiceStatus } from '@shared/types'
 import { getMainWindow, send } from './window'
@@ -90,6 +90,10 @@ export function registerIpc(): void {
   ipcMain.handle('updater:status', () => getUpdateStatus())
   ipcMain.handle('updater:ready', () => isUpdateReady())
   ipcMain.handle('updater:install-now', () => installUpdateNow())
+  ipcMain.handle('system:open-external', (_e, url: string) => {
+    if (!/^https?:\/\//i.test(url)) throw new Error('Only http(s) URLs can be opened.')
+    return shell.openExternal(url)
+  })
 
   // Broadcast settings changes so every view stays in sync.
   onSettingsChange((s) => {

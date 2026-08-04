@@ -105,6 +105,10 @@ function Markdown({ source }: { source: string }): React.JSX.Element {
   return <div className="text-lg text-white/90">{blocks}</div>
 }
 
+// Some login flows (notably Google's) reject "embedded browser" user agents —
+// present as plain Chrome, which is what the engine actually is.
+const CHROME_UA = navigator.userAgent.replace(/\s?(Hearth|hearth|Electron)\/[^\s]+/g, '')
+
 export default function ContentPanel(): React.JSX.Element | null {
   const panel = useStore((s) => s.contentPanel)
   const setContentPanel = useStore((s) => s.setContentPanel)
@@ -116,7 +120,16 @@ export default function ContentPanel(): React.JSX.Element | null {
         <span className="text-lg">{panel.kind === 'web' ? '🌐' : '📖'}</span>
         <span className="min-w-0 flex-1 truncate text-lg font-medium">{panel.title}</span>
         {panel.kind === 'web' && (
-          <span className="max-w-[40%] truncate text-xs text-white/35">{panel.url}</span>
+          <span className="max-w-[30%] truncate text-xs text-white/35">{panel.url}</span>
+        )}
+        {panel.kind === 'web' && (
+          <button
+            onClick={() => void window.hearth.system.openExternal(panel.url)}
+            className="rounded-full bg-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/20 hover:text-white"
+            title="Open this page in your default browser (with your logins)"
+          >
+            Open in Chrome ↗
+          </button>
         )}
         <button
           onClick={() => setContentPanel(null)}
@@ -130,7 +143,7 @@ export default function ContentPanel(): React.JSX.Element | null {
           <Markdown source={panel.markdown} />
         </div>
       ) : (
-        <webview src={panel.url} className="flex-1" style={{ display: 'flex' }} />
+        <webview src={panel.url} useragent={CHROME_UA} className="flex-1" style={{ display: 'flex' }} />
       )}
     </div>
   )

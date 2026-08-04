@@ -85,6 +85,7 @@ export interface HearthApi {
     updateStatus(): Promise<string>
     updateReady(): Promise<boolean>
     installUpdateNow(): Promise<void>
+    openExternal(url: string): Promise<void>
   }
   on(channel: string, listener: (...args: unknown[]) => void): () => void
 }

@@ -75,6 +75,7 @@ const api = {
     updateStatus: () => ipcRenderer.invoke('updater:status'),
     updateReady: () => ipcRenderer.invoke('updater:ready'),
     installUpdateNow: () => ipcRenderer.invoke('updater:install-now'),
+    openExternal: (url: string) => ipcRenderer.invoke('system:open-external', url),
   },
   on: (channel: string, listener: (...args: unknown[]) => void) => {
     if (!EVENT_CHANNELS.has(channel)) {

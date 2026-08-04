@@ -7,6 +7,7 @@ declare namespace React {
           src?: string
           allowpopups?: string
           partition?: string
+          useragent?: string
         },
         HTMLElement
       >
