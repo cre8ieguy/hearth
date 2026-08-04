@@ -188,6 +188,11 @@ export async function ask(userText: string): Promise<string> {
   })
 
   let finalText = ''
+  // Web search's dynamic filtering runs in a server-side code-execution
+  // container; once a turn opens one, every follow-up request in the same
+  // turn must resume it via `container`, or the API 400s with
+  // "container_id is required when there are pending tool uses…".
+  let containerId: string | undefined
   try {
     const anthropic = getClient()
     const system = buildSystem()
@@ -218,6 +223,7 @@ export async function ask(userText: string): Promise<string> {
       const stream: any = anthropic.beta.messages.stream({
         model,
         max_tokens: 32000,
+        ...(containerId ? { container: containerId } : {}),
         system,
         messages,
         tools,
@@ -233,6 +239,8 @@ export async function ask(userText: string): Promise<string> {
 
       const message: BetaMessage = await stream.finalMessage()
       currentStream = null
+      const container = (message as unknown as { container?: { id?: string } | null }).container
+      if (container?.id) containerId = container.id
       history.push({ role: 'assistant', content: message.content })
 
       if (message.stop_reason === 'refusal') {
