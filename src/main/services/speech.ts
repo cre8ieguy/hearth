@@ -19,6 +19,7 @@ export async function transcribe(bytes: Uint8Array, mime: string): Promise<strin
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey()}` },
     body: form,
+    signal: AbortSignal.timeout(60_000),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
@@ -43,6 +44,8 @@ export async function speak(text: string): Promise<Uint8Array> {
       input: text.slice(0, 4000),
       response_format: 'mp3',
     }),
+    // A wedged synthesis request must fail loudly, never hang the pipeline.
+    signal: AbortSignal.timeout(25_000),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')

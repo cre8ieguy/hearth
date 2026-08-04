@@ -73,9 +73,11 @@ class VoiceController {
   private generationDone = true
   private pending = '' // streamed text not yet sent to TTS
   private firstFlushDone = false
-  private speechQueue: Promise<Uint8Array | null>[] = []
+  private speechTexts: string[] = [] // sentences awaiting synthesis
+  private inflight: Promise<Uint8Array | null> | null = null // prefetched next
   private queuePlaying = false
   private queueStopped = false
+  private failsafeHandle: number | null = null
 
   constructor() {
     if (typeof window !== 'undefined' && window.hearth) {
@@ -318,7 +320,8 @@ class VoiceController {
         this.firstFlushDone = false
         this.generationDone = false
         this.queueStopped = false
-        this.speechQueue = []
+        this.speechTexts = []
+        this.inflight = null
         break
       case 'text-delta':
         if (!this.speakEnabled()) return
@@ -341,10 +344,20 @@ class VoiceController {
         break
       case 'turn-end':
         this.generationDone = true
-        if (!this.speakEnabled() || (this.speechQueue.length === 0 && !this.queuePlaying)) {
+        if (!this.speakEnabled() || (this.speechTexts.length === 0 && !this.inflight && !this.queuePlaying)) {
           this.voiceTurn = false
           if (this.state === 'thinking') this.afterSpeech()
         }
+        // Failsafe: whatever happens with synthesis/playback, never leave the
+        // orb wedged after generation finished.
+        if (this.failsafeHandle !== null) clearTimeout(this.failsafeHandle)
+        this.failsafeHandle = window.setTimeout(() => {
+          if (this.voiceTurn && (this.state === 'thinking' || this.state === 'speaking')) {
+            useStore.setState({ liveError: 'Voice output stalled — recovered. Try again.' })
+            this.stopSpeaking()
+            this.setState('idle')
+          }
+        }, 45_000)
         break
     }
   }
@@ -372,19 +385,45 @@ class VoiceController {
   }
 
   private enqueueSpeech(text: string): void {
-    // Fire the TTS request immediately (overlaps with generation + playback).
-    const fetchPromise = window.hearth.speech.tts(text).catch(() => null)
-    this.speechQueue.push(fetchPromise)
+    this.speechTexts.push(text)
     void this.pumpQueue()
   }
 
+  /** One synthesis request with a hard client-side timeout; failures surface
+   *  on screen instead of silently spinning. */
+  private fetchTts(text: string): Promise<Uint8Array | null> {
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(() => {
+        useStore.setState({ liveError: 'Voice request timed out — check the network/OpenAI status.' })
+        resolve(null)
+      }, 30_000)
+      window.hearth.speech.tts(text).then(
+        (bytes) => {
+          clearTimeout(timer)
+          resolve(bytes)
+        },
+        (err: Error) => {
+          clearTimeout(timer)
+          useStore.setState({ liveError: `Voice error: ${err.message.slice(0, 200)}` })
+          resolve(null)
+        },
+      )
+    })
+  }
+
+  /** Serial synthesis with one-ahead prefetch — no parallel request bursts. */
   private async pumpQueue(): Promise<void> {
     if (this.queuePlaying) return
     this.queuePlaying = true
     try {
-      while (this.speechQueue.length > 0 && !this.queueStopped) {
-        const bytes = await this.speechQueue.shift()!
+      while ((this.speechTexts.length > 0 || this.inflight) && !this.queueStopped) {
+        const current = this.inflight ?? this.fetchTts(this.speechTexts.shift()!)
+        this.inflight = null
+        const bytes = await current
         if (this.queueStopped) break
+        if (this.speechTexts.length > 0) {
+          this.inflight = this.fetchTts(this.speechTexts.shift()!)
+        }
         if (bytes) {
           this.setState('speaking')
           await this.playOne(bytes)
@@ -393,7 +432,7 @@ class VoiceController {
     } finally {
       this.queuePlaying = false
     }
-    if (!this.queueStopped && this.generationDone && this.speechQueue.length === 0) {
+    if (!this.queueStopped && this.generationDone && this.speechTexts.length === 0 && !this.inflight) {
       this.voiceTurn = false
       this.afterSpeech()
     }
@@ -411,10 +450,16 @@ class VoiceController {
       const blob = new Blob([bytes.slice().buffer], { type: 'audio/mpeg' })
       this.ttsUrl = URL.createObjectURL(blob)
       this.ttsAudio = new Audio(this.ttsUrl)
+      let settled = false
       const done = (): void => {
+        if (settled) return
+        settled = true
+        clearTimeout(watchdog)
         this.cleanupTts()
         resolve()
       }
+      // If the audio stack stalls (e.g. output device vanished), move on.
+      const watchdog = window.setTimeout(done, 90_000)
       this.ttsAudio.onended = done
       this.ttsAudio.onerror = done
       void this.ttsAudio.play().catch(done)
@@ -436,7 +481,8 @@ class VoiceController {
   stopSpeaking(): void {
     this.queueStopped = true
     this.voiceTurn = false
-    this.speechQueue = []
+    this.speechTexts = []
+    this.inflight = null
     this.pending = ''
     if (this.ttsAudio) {
       this.ttsAudio.onended = null
