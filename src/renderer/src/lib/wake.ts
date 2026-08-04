@@ -1,6 +1,7 @@
 import { useStore } from '../store'
 import { voice } from './voice'
 import { OpenWakeWordEngine } from './oww'
+import { setActiveWakeEngine } from './wakeBridge'
 import type { PorcupineWorker } from '@picovoice/porcupine-web'
 
 /**
@@ -66,6 +67,7 @@ async function stopEngines(): Promise<void> {
       // already terminated
     }
   }
+  setActiveWakeEngine(null)
   oww?.dispose()
   oww = null
 }
@@ -108,6 +110,7 @@ export async function syncWakeWord(): Promise<void> {
     // Default: openWakeWord — sensitivity 0.4-0.8 maps to score threshold 0.7-0.3.
     const threshold = Math.min(0.7, Math.max(0.3, 1.1 - conf.sensitivity))
     oww = await OpenWakeWordEngine.create(threshold, onDetection)
+    setActiveWakeEngine(oww)
     setStatus('Listening for “Hey Jarvis”')
   } catch (err) {
     await stopEngines()

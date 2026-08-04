@@ -36,6 +36,12 @@ export class OpenWakeWordEngine {
   private busy = false
   private queue: Float32Array[] = []
 
+  // Rolling pre-roll so speech that overlaps the wake word isn't lost, plus
+  // a capture tap that lets the voice controller record from this already-open
+  // mic instead of paying getUserMedia latency on every wake.
+  private preRoll: Float32Array[] = []
+  private capture: { chunks: Float32Array[]; onChunk: (rms: number) => void } | null = null
+
   private constructor(
     private threshold: number,
     private onDetect: () => void,
@@ -89,8 +95,20 @@ export class OpenWakeWordEngine {
       this.sampleLen += take
       offset += take
       if (this.sampleLen === CHUNK) {
-        this.queue.push(this.sampleBuf.slice())
+        const chunk = this.sampleBuf.slice()
         this.sampleLen = 0
+
+        this.preRoll.push(chunk)
+        if (this.preRoll.length > 12) this.preRoll.shift() // ~1s of context
+
+        if (this.capture) {
+          this.capture.chunks.push(chunk)
+          let sum = 0
+          for (let i = 0; i < chunk.length; i++) sum += chunk[i] * chunk[i]
+          this.capture.onChunk(Math.sqrt(sum / chunk.length))
+        }
+
+        this.queue.push(chunk)
         if (this.queue.length > 25) this.queue.splice(0, this.queue.length - 25)
         void this.drain()
       }
@@ -160,8 +178,27 @@ export class OpenWakeWordEngine {
     }
   }
 
+  /** Record from the engine's open mic. Seeds with pre-roll so speech that
+   *  started during/right after the wake word is included. */
+  startPcmCapture(preRollMs: number, onChunk: (rms: number) => void): void {
+    const preChunks = Math.min(this.preRoll.length, Math.round(preRollMs / 80))
+    this.capture = { chunks: this.preRoll.slice(this.preRoll.length - preChunks), onChunk }
+  }
+
+  /** Stop recording and return all captured 16 kHz mono chunks. */
+  stopPcmCapture(): Float32Array[] {
+    const chunks = this.capture?.chunks ?? []
+    this.capture = null
+    return chunks
+  }
+
+  isAlive(): boolean {
+    return !this.disposed && this.audioCtx !== null
+  }
+
   dispose(): void {
     this.disposed = true
+    this.capture = null
     this.node?.port.close()
     this.node?.disconnect()
     this.stream?.getTracks().forEach((track) => track.stop())
