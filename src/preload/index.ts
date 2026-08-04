@@ -73,6 +73,8 @@ const api = {
     quit: () => ipcRenderer.invoke('system:quit'),
     checkUpdates: () => ipcRenderer.invoke('updater:check'),
     updateStatus: () => ipcRenderer.invoke('updater:status'),
+    updateReady: () => ipcRenderer.invoke('updater:ready'),
+    installUpdateNow: () => ipcRenderer.invoke('updater:install-now'),
   },
   on: (channel: string, listener: (...args: unknown[]) => void) => {
     if (!EVENT_CHANNELS.has(channel)) {

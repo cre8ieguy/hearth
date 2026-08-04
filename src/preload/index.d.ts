@@ -83,6 +83,8 @@ export interface HearthApi {
     quit(): Promise<void>
     checkUpdates(): Promise<string>
     updateStatus(): Promise<string>
+    updateReady(): Promise<boolean>
+    installUpdateNow(): Promise<void>
   }
   on(channel: string, listener: (...args: unknown[]) => void): () => void
 }

@@ -13,6 +13,7 @@ import { send } from '../window'
 let started = false
 let installTimer: NodeJS.Timeout | null = null
 let lastStatus = 'Auto-update runs in the installed app.'
+let downloadedVersion: string | null = null
 
 function status(message: string): void {
   lastStatus = message
@@ -43,7 +44,8 @@ export async function startAutoUpdater(): Promise<void> {
       status(`Update check failed: ${(err?.message ?? String(err)).slice(0, 140)}`),
     )
     auto.on('update-downloaded', (info) => {
-      status(`v${info.version} downloaded — installs overnight or on next restart`)
+      downloadedVersion = info.version
+      status(`v${info.version} ready — use "Install now", or it installs overnight`)
       scheduleQuietInstall()
     })
 
@@ -71,6 +73,19 @@ function scheduleQuietInstall(): void {
     },
     target.getTime() - now.getTime(),
   )
+}
+
+export function isUpdateReady(): boolean {
+  return downloadedVersion !== null
+}
+
+/** "Install now" from Settings — quits, installs silently, relaunches. */
+export async function installUpdateNow(): Promise<void> {
+  if (!app.isPackaged || !downloadedVersion) return
+  const auto = await updater()
+  status(`Installing v${downloadedVersion}…`)
+  // Let the IPC response flush before the app quits out from under it.
+  setTimeout(() => auto.quitAndInstall(true, true), 300)
 }
 
 /** Manual "Check for updates" from Settings. */

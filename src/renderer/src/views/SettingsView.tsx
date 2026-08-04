@@ -168,6 +168,10 @@ function ConnectButton({
 
 function UpdateRow(): React.JSX.Element {
   const updateStatus = useStore((s) => s.updateStatus)
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    void window.hearth.system.updateReady().then(setReady)
+  }, [updateStatus])
   return (
     <div className="flex items-center gap-3">
       <button
@@ -176,6 +180,14 @@ function UpdateRow(): React.JSX.Element {
       >
         Check for updates
       </button>
+      {ready && (
+        <button
+          onClick={() => void window.hearth.system.installUpdateNow()}
+          className="bg-accent rounded-xl px-5 py-3 text-sm font-medium"
+        >
+          Install now (restarts app)
+        </button>
+      )}
       {updateStatus && <span className="text-xs text-white/45">{updateStatus}</span>}
     </div>
   )
