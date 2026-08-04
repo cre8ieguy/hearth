@@ -1,13 +1,24 @@
 ; Hearth NSIS customizations (wired via electron-builder.yml -> nsis.include).
 ;
-; Kill any running Hearth instance before installing or uninstalling so stale
-; file locks can never fail an update ("Failed to uninstall old application
-; files" / "Hearth cannot be closed"). The app is a kiosk that auto-starts at
-; login, so a live instance at install time is the normal case, not an error.
+; Updating a kiosk app that auto-starts at login means the old version is
+; usually alive (or its files briefly locked by AV/indexing right after it
+; quits). Kill it, then RETRY until the old exe is provably deletable before
+; letting the uninstall step run — otherwise NSIS fails with "Failed to
+; uninstall old application files".
 
 !macro customInit
   nsExec::Exec 'taskkill /F /IM Hearth.exe /T'
-  Sleep 500
+  StrCpy $R9 0
+  hearth_wait_unlock:
+    ClearErrors
+    Delete "$LOCALAPPDATA\Programs\hearth\Hearth.exe"
+    IfErrors 0 hearth_unlocked
+    IntOp $R9 $R9 + 1
+    IntCmp $R9 16 hearth_unlocked
+    Sleep 500
+    nsExec::Exec 'taskkill /F /IM Hearth.exe /T'
+    Goto hearth_wait_unlock
+  hearth_unlocked:
 !macroend
 
 !macro customUnInit

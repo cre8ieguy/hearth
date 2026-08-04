@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { send } from '../window'
 
 /**
@@ -60,6 +60,17 @@ export async function startAutoUpdater(): Promise<void> {
   }
 }
 
+/** Destroy windows first so process teardown is instant — shrinks the window
+ *  where the old exe is still lock-held when the installer's uninstall runs. */
+function hardQuitAndInstall(auto: { quitAndInstall: (a: boolean, b: boolean) => void }): void {
+  try {
+    for (const win of BrowserWindow.getAllWindows()) win.destroy()
+  } catch {
+    // window already gone
+  }
+  auto.quitAndInstall(true, true)
+}
+
 /** Install at ~3:30am local time so the kiosk never restarts mid-use. */
 function scheduleQuietInstall(): void {
   if (installTimer) return
@@ -69,7 +80,7 @@ function scheduleQuietInstall(): void {
   if (target <= now) target.setDate(target.getDate() + 1)
   installTimer = setTimeout(
     () => {
-      void updater().then((auto) => auto.quitAndInstall(true, true))
+      void updater().then(hardQuitAndInstall)
     },
     target.getTime() - now.getTime(),
   )
@@ -85,7 +96,7 @@ export async function installUpdateNow(): Promise<void> {
   const auto = await updater()
   status(`Installing v${downloadedVersion}…`)
   // Let the IPC response flush before the app quits out from under it.
-  setTimeout(() => auto.quitAndInstall(true, true), 300)
+  setTimeout(() => hardQuitAndInstall(auto), 300)
 }
 
 /** Manual "Check for updates" from Settings. */
