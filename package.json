@@ -1,7 +1,7 @@
 {
   "name": "hearth",
   "productName": "Hearth",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Touchscreen smart-home assistant powered by Claude Fable 5 — voice, Spotify, calendar, Home Assistant, weather, and ambient screensavers.",
   "author": "Ben Porter <ben@cre8ive.biz>",
   "license": "MIT",
