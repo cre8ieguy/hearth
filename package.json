@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist:win": "npm run build && electron-builder --win --x64",
     "dist:dir": "npm run build && electron-builder --dir",
-    "release": "npm run build && electron-builder --win --x64 --publish always"
+    "release": "npm run dist:win && node scripts/publish-release.mjs"
   },
   "engines": {
     "node": ">=20"

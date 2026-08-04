@@ -32,17 +32,19 @@ mid-use. Settings → About shows update status and has a manual "Check for upda
 ```bash
 npm version patch
 git push --follow-tags
-GH_TOKEN=$(gh auth token) npm run release
+npm run release
 ```
 
 - `npm version patch` bumps `0.1.0 → 0.1.1`, commits, and tags (use `minor` / `major` when it
   fits). It requires a clean git tree — commit your changes first.
 - `git push --follow-tags` must run **before** the release — GitHub refuses to publish a
   (non-draft) release for a tag it doesn't have yet.
-- `npm run release` builds the Windows installer and uploads it, plus the `latest.yml` update
-  manifest, to the GitHub Release for that tag. (With the GitHub CLI signed in,
-  `$(gh auth token)` saves you managing a separate token.)
-- That's it. Kiosks pick it up within ~2 hours and install overnight.
+- `npm run release` builds the Windows installer, then publishes via
+  `scripts/publish-release.mjs` using the signed-in GitHub CLI — it creates the release, uploads
+  every asset, and verifies the update feed end-to-end. It's idempotent: safe to re-run if
+  anything flakes. (No `GH_TOKEN` needed — `gh auth login` covers it.)
+- That's it. Kiosks pick it up within ~2 hours and install overnight — or immediately via
+  Settings → About → **Install now**.
 
 ## How the kiosk behaves
 
