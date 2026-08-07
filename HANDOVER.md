@@ -14,7 +14,8 @@ screensavers.
 
 - Repo: https://github.com/cre8ieguy/hearth (public — required so kiosks fetch updates keyless)
 - Releases/installers: https://github.com/cre8ieguy/hearth/releases/latest
-- **Current version: v0.1.8**, published. Kiosk PC was being reinstalled to 0.1.8 at handover.
+- **Current version: v0.1.13**, published (2026-08-08). The 0.1.8 clean reinstall worked;
+  in-place updates confirmed installing on the kiosk.
 
 ## Stack & architecture
 
@@ -152,20 +153,39 @@ be closed". Fixes layered into `build/installer.nsh`:
   cost becomes a complaint. Cost levers: model dropdown (Opus 5 = half of Fable; recommended),
   spend caps in both consoles.
 
-## OPEN THREADS at handover (start here)
+## What changed after handover (sessions of 2026-08-07/08, v0.1.9 → v0.1.13)
 
-1. **TTS hang on the kiosk (main open bug):** on v0.1.6, a single OpenAI `/audio/speech` request
-   hung forever mid-turn (full text on screen, orb stuck "thinking"; STT to the same origin works
-   fine). v0.1.7 added timeouts + serial synthesis + failsafe + **on-screen error naming the
-   cause** — awaiting Ben's retest ("Hey Jarvis, tell me a joke"). If "Voice request timed out"
-   shows repeatedly, prime suspect is **Malwarebytes Web Protection** (its installer was in the
-   kiosk's Downloads) stalling streamed binary responses → test with Web Protection off, then add
-   an exclusion for `%LocalAppData%\Programs\hearth\Hearth.exe`.
-2. **Installer fix verification:** Ben was doing the one-time clean reinstall of 0.1.8
-   (non-elevated). The next released version updating cleanly via the in-app button is the proof.
-3. Untested-by-me on real hardware: wake-word accuracy across the room (sensitivity setting),
-   continuous-conversation mode, Home Assistant + Spotify + Calendar flows end-to-end (connected
-   and working per Ben, but lightly exercised).
+- **Installer saga resolved:** 0.1.8 clean reinstall worked; subsequent versions install
+  in place on the kiosk. "Install now" + the 3:30am install now run the NSIS installer
+  **non-silent** (0.1.11+) because silent + force-run-after never relaunches the app
+  (years-old electron-updater bug) — the visible one-click path always relaunches.
+- **Voice:** new Settings → Voice "Speaking speed" (playbackRate, default 1.2×). Wake
+  capture pre-roll 640ms → ~1.5s so no pause is needed after "Hey Jarvis"; transcript
+  strip regex broadened for garbled wake-word fragments.
+- **YouTube screensaver:** referer injection + live-stream findings (see gotchas above);
+  default presets replaced with verified non-live uploads, saved live presets migrate.
+- **Screensaver:** plays videos (muted, 2-min cap, skip-on-error); 5000-item cap (Ben has
+  ~2,240 favourites); photos that don't fit the screen pan across instead of cropping;
+  new **mix mode** alternates photos/YouTube presets (mixMinutes, default 15).
+- **Photos pipeline (docs/setup-icloud-photos.md):** nightly iPhone Shortcut exports
+  Favourites as JPEG (videos optional via Encode Media) to iCloud Drive, incrementally
+  (skips already-exported names); iCloud for Windows mirrors to the kiosk. Ben was
+  mid-setup: first big export + 3am automation still to finish.
+
+## OPEN THREADS
+
+1. **TTS hang (from original handover, unconfirmed either way):** if "Voice request timed
+   out" appears repeatedly on the kiosk, prime suspect is Malwarebytes Web Protection
+   stalling streamed binary responses → test with Web Protection off, then add an exclusion
+   for `%LocalAppData%\Programs\hearth\Hearth.exe`. No report since 0.1.9; may be moot.
+2. **Updater relaunch fix (0.1.11) verification:** first update *from* ≥0.1.11 should
+   relaunch the app by itself after "Install now".
+3. **iCloud favourites pipeline:** Ben finishing the first big Shortcut export (needs
+   Auto-Lock off + "Always Allow" prompts) and the 3am automation, then pointing Hearth
+   at `iCloudDrive\Shortcuts\Hearth Photos` on the kiosk.
+4. Untested on real hardware: wake-word accuracy across the room (sensitivity setting),
+   continuous-conversation mode, Home Assistant + Spotify + Calendar flows end-to-end
+   (connected and working per Ben, but lightly exercised).
 
 ## Deferred ideas
 
