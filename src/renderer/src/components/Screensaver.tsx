@@ -160,6 +160,36 @@ function YoutubeShow({ preset }: { preset?: string }): React.JSX.Element {
   )
 }
 
+/** Alternates photos and ambient video, rotating through the YouTube presets
+ *  on each video phase. With no presets configured it's just the slideshow. */
+function MixShow(): React.JSX.Element {
+  const minutes = useStore((s) => s.settings?.screensaver.mixMinutes ?? 15)
+  const presets = useStore((s) => s.settings?.screensaver.youtubePresets ?? [])
+  const [phase, setPhase] = useState<'photos' | 'youtube'>('photos')
+  const [ytIndex, setYtIndex] = useState(0)
+
+  useEffect(() => {
+    if (presets.length === 0) return
+    const handle = setTimeout(
+      () => {
+        if (phase === 'photos') {
+          setPhase('youtube')
+        } else {
+          setPhase('photos')
+          setYtIndex((i) => i + 1) // next preset on the next video phase
+        }
+      },
+      Math.max(1, minutes) * 60_000,
+    )
+    return () => clearTimeout(handle)
+  }, [phase, minutes, presets.length])
+
+  if (phase === 'youtube' && presets.length > 0) {
+    return <YoutubeShow preset={presets[ytIndex % presets.length].name} />
+  }
+  return <PhotoShow />
+}
+
 export default function Screensaver({ state }: { state: ScreensaverState }): React.JSX.Element {
   const showClock = useStore((s) => s.settings?.screensaver.showClock ?? true)
   const setScreensaver = useStore((s) => s.setScreensaver)
@@ -178,7 +208,13 @@ export default function Screensaver({ state }: { state: ScreensaverState }): Rea
         if (armed) setScreensaver(null)
       }}
     >
-      {state.mode === 'photos' ? <PhotoShow /> : <YoutubeShow preset={state.preset} />}
+      {state.mode === 'photos' ? (
+        <PhotoShow />
+      ) : state.mode === 'mix' ? (
+        <MixShow />
+      ) : (
+        <YoutubeShow preset={state.preset} />
+      )}
       {showClock && (
         <div className="pointer-events-none absolute bottom-10 left-12 drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
           <Clock size="lg" />

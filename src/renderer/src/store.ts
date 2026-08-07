@@ -13,7 +13,7 @@ import type {
 export type VoiceState = 'idle' | 'listening' | 'transcribing' | 'thinking' | 'speaking'
 
 export interface ScreensaverState {
-  mode: 'photos' | 'youtube'
+  mode: 'photos' | 'youtube' | 'mix'
   preset?: string
 }
 
@@ -152,7 +152,7 @@ export function initStore(): void {
   })
   window.hearth.on('updater:status', (updateStatus) => set({ updateStatus: updateStatus as string }))
   window.hearth.on('ui:screensaver', (payload) => {
-    const p = payload as { mode: 'photos' | 'youtube' | 'off'; preset?: string }
+    const p = payload as { mode: 'photos' | 'youtube' | 'mix' | 'off'; preset?: string }
     if (p.mode === 'off') set({ screensaver: null })
     else set({ screensaver: { mode: p.mode, preset: p.preset } })
   })

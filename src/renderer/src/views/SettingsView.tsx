@@ -577,6 +577,7 @@ export default function SettingsView(): React.JSX.Element {
               options={[
                 { value: 'photos', label: 'Photo slideshow' },
                 { value: 'youtube', label: 'Ambient YouTube' },
+                { value: 'mix', label: 'Mix — photos & YouTube take turns' },
                 { value: 'off', label: 'Off' },
               ]}
               width="flex-1"
@@ -589,6 +590,15 @@ export default function SettingsView(): React.JSX.Element {
               width="flex-1"
             />
           </div>
+          {s.screensaver.mode === 'mix' && (
+            <SelectField
+              label="Mix: switch every"
+              value={String(s.screensaver.mixMinutes)}
+              onChange={(v) => void update({ screensaver: { mixMinutes: Number(v) } })}
+              options={['5', '10', '15', '30', '60'].map((v) => ({ value: v, label: `${v} min` }))}
+              width="w-1/2"
+            />
+          )}
           <div className="flex items-end gap-3">
             <TextField
               label="Photos folder"

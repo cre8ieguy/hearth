@@ -36,7 +36,7 @@ export default function App(): React.JSX.Element {
         () => {
           const st = useStore.getState()
           if (st.voiceState === 'idle' && !st.turnActive && !st.screensaver) {
-            setScreensaver({ mode: conf.mode as 'photos' | 'youtube', preset: conf.activePreset })
+            setScreensaver({ mode: conf.mode as 'photos' | 'youtube' | 'mix', preset: conf.activePreset })
           }
         },
         Math.max(1, conf.idleMinutes) * 60_000,

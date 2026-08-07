@@ -163,11 +163,11 @@ const CUSTOM_TOOLS = [
   {
     name: 'show_screensaver',
     description:
-      'Start or stop the ambient screensaver on this display. mode=photos shows the photo slideshow; mode=youtube shows an ambient video (pass preset to pick one, e.g. "aquarium"); mode=off wakes the screen. Call for "show the aquarium", "start the slideshow", "wake up".',
+      'Start or stop the ambient screensaver on this display. mode=photos shows the photo slideshow; mode=youtube shows an ambient video (pass preset to pick one, e.g. "aquarium"); mode=mix alternates photos and ambient videos; mode=off wakes the screen. Call for "show the aquarium", "start the slideshow", "mix it up", "wake up".',
     input_schema: {
       type: 'object',
       properties: {
-        mode: { type: 'string', enum: ['photos', 'youtube', 'off'] },
+        mode: { type: 'string', enum: ['photos', 'youtube', 'mix', 'off'] },
         preset: { type: 'string', description: 'YouTube preset name (fuzzy matched).' },
       },
       required: ['mode'],
@@ -374,7 +374,7 @@ export async function dispatchTool(name: string, input: Input): Promise<string> 
     }
 
     case 'show_screensaver': {
-      const mode = String(input.mode) as 'photos' | 'youtube' | 'off'
+      const mode = String(input.mode) as 'photos' | 'youtube' | 'mix' | 'off'
       let presetName: string | undefined
       if (mode === 'youtube') {
         const presets = getSettings().screensaver.youtubePresets
@@ -386,6 +386,7 @@ export async function dispatchTool(name: string, input: Input): Promise<string> 
       }
       send('ui:screensaver', { mode, preset: presetName })
       if (mode === 'off') return 'Screensaver off.'
+      if (mode === 'mix') return 'Screensaver started, alternating photos and ambient video.'
       return mode === 'photos' ? 'Photo slideshow started.' : `Playing ambient video: ${presetName}.`
     }
 

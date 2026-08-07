@@ -58,7 +58,8 @@ export interface Settings {
     keepAwake: boolean
   }
   screensaver: {
-    mode: 'photos' | 'youtube' | 'off'
+    mode: 'photos' | 'youtube' | 'mix' | 'off'
+    mixMinutes: number // in mix mode, minutes per phase before switching
     idleMinutes: number
     photosDir: string
     photoIntervalSec: number
@@ -229,6 +230,7 @@ export const DEFAULT_SETTINGS: Settings = {
   display: { clock24h: false, kiosk: false, launchAtLogin: false, keepAwake: true },
   screensaver: {
     mode: 'photos',
+    mixMinutes: 15,
     idleMinutes: 5,
     photosDir: '',
     photoIntervalSec: 12,
