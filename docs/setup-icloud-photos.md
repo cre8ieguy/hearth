@@ -62,6 +62,24 @@ Settings → Screensaver → set the **photos folder** to that path, mode **Phot
 From then on: ♥ a photo on your phone → the 3 AM shortcut exports it → iCloud Drive syncs
 it down → it's on the wall by morning.
 
+## Want favourite videos too? (optional)
+
+From Hearth v0.1.11 the slideshow also plays videos (muted, each up to 2 minutes). The
+shortcut needs one extra branch, because Convert Image only handles stills. Inside the
+"does not contain" If, **above** the Convert Image action, add:
+
+1. **If** — input *Repeat Item* → Get **Media Type** → condition **is** → `Video`. Inside it:
+   - **Encode Media** — input *Repeat Item*, Size **1080p** (re-encodes to H.264, which the
+     kiosk can always play, and shrinks iPhone HEVC files).
+   - **Set Name** — *Encoded Media* to *Name* of *Repeat Item* + `.mp4`.
+   - **Save File** — same settings as the photo one (iCloud Drive `Shortcuts/Hearth Photos`,
+     don't ask, overwrite on).
+2. In its **Otherwise** branch: the existing Convert Image → Set Name `.jpg` → Save File.
+3. **End If**.
+
+Mind the size: even re-encoded, a one-minute clip is ~60–120 MB — a handful of favourite
+videos can outweigh hundreds of photos in iCloud space and sync time.
+
 ## Notes
 
 - iCloud for Windows starts with Windows by default; leave that on.

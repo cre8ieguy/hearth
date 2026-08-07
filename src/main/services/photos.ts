@@ -4,11 +4,15 @@ import { net } from 'electron'
 import { pathToFileURL } from 'url'
 import { getSettings } from '../settings'
 
-const EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif'])
-const MAX_PHOTOS = 800
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif'])
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.m4v', '.mov', '.webm'])
+const MAX_PHOTOS = 5000
 
+// Videos are flagged in the URL query (the path itself is base64url-opaque)
+// so the renderer knows to mount a <video> instead of an <img>.
 function toMediaUrl(filePath: string): string {
-  return 'media://p/' + Buffer.from(filePath, 'utf8').toString('base64url')
+  const url = 'media://p/' + Buffer.from(filePath, 'utf8').toString('base64url')
+  return VIDEO_EXTENSIONS.has(path.extname(filePath).toLowerCase()) ? url + '?video=1' : url
 }
 
 function fromMediaUrl(urlPath: string): string {
@@ -28,11 +32,14 @@ function walk(dir: string, depth: number, out: string[]): void {
     if (entry.name.startsWith('.')) continue
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) walk(full, depth - 1, out)
-    else if (EXTENSIONS.has(path.extname(entry.name).toLowerCase())) out.push(full)
+    else {
+      const ext = path.extname(entry.name).toLowerCase()
+      if (IMAGE_EXTENSIONS.has(ext) || VIDEO_EXTENSIONS.has(ext)) out.push(full)
+    }
   }
 }
 
-/** Returns shuffled media:// URLs for every photo under the configured folder. */
+/** Returns shuffled media:// URLs for every photo/video under the configured folder. */
 export function listPhotos(): string[] {
   const dir = getSettings().screensaver.photosDir
   if (!dir) return []

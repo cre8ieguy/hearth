@@ -1,6 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore, type ScreensaverState } from '../store'
 import Clock from './Clock'
+
+const MAX_VIDEO_SEC = 120 // a video slide plays to its end, but never longer
+
+function isVideoUrl(url: string): boolean {
+  return url.includes('?video=1')
+}
 
 function PhotoShow(): React.JSX.Element {
   const intervalSec = useStore((s) => s.settings?.screensaver.photoIntervalSec ?? 12)
@@ -11,14 +17,20 @@ function PhotoShow(): React.JSX.Element {
     void window.hearth.photos.list().then(setPhotos)
   }, [])
 
+  const advance = useCallback(() => {
+    setIndex((i) => (photos && photos.length > 0 ? (i + 1) % photos.length : 0))
+  }, [photos])
+
+  const isVideo = !!photos?.length && isVideoUrl(photos[index])
+
+  // Photos advance on the interval; videos play through to onEnded, with a
+  // hard cap so one wedged file can't freeze the show.
   useEffect(() => {
     if (!photos || photos.length < 2) return
-    const handle = setInterval(
-      () => setIndex((i) => (i + 1) % photos.length),
-      Math.max(4, intervalSec) * 1000,
-    )
-    return () => clearInterval(handle)
-  }, [photos, intervalSec])
+    const seconds = isVideo ? MAX_VIDEO_SEC : Math.max(4, intervalSec)
+    const handle = setTimeout(advance, seconds * 1000)
+    return () => clearTimeout(handle)
+  }, [photos, index, intervalSec, isVideo, advance])
 
   if (!photos) return <div />
   if (photos.length === 0) {
@@ -36,16 +48,29 @@ function PhotoShow(): React.JSX.Element {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {photos.length > 1 && (
+      {photos.length > 1 && !isVideoUrl(previous) && (
         <img key={previous + '-prev'} src={previous} alt="" className="absolute inset-0 h-full w-full object-cover" />
       )}
-      <img
-        key={current}
-        src={current}
-        alt=""
-        className="animate-kenburns absolute inset-0 h-full w-full object-cover"
-        style={{ animationDuration: `${Math.max(4, intervalSec) + 4}s` }}
-      />
+      {isVideo ? (
+        <video
+          key={current}
+          src={current}
+          autoPlay
+          muted
+          playsInline
+          onEnded={advance}
+          onError={advance} // undecodable file -> skip rather than hang
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <img
+          key={current}
+          src={current}
+          alt=""
+          className="animate-kenburns absolute inset-0 h-full w-full object-cover"
+          style={{ animationDuration: `${Math.max(4, intervalSec) + 4}s` }}
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
     </div>
   )

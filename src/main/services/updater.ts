@@ -61,14 +61,18 @@ export async function startAutoUpdater(): Promise<void> {
 }
 
 /** Destroy windows first so process teardown is instant — shrinks the window
- *  where the old exe is still lock-held when the installer's uninstall runs. */
+ *  where the old exe is still lock-held when the installer's uninstall runs.
+ *  Install is NON-silent on purpose: silent + force-run-after has a years-old
+ *  electron-updater/NSIS bug where the app never relaunches, while the visible
+ *  one-click installer always starts the app when it finishes — the same code
+ *  path as a manual install, proven on the kiosk. */
 function hardQuitAndInstall(auto: { quitAndInstall: (a: boolean, b: boolean) => void }): void {
   try {
     for (const win of BrowserWindow.getAllWindows()) win.destroy()
   } catch {
     // window already gone
   }
-  auto.quitAndInstall(true, true)
+  auto.quitAndInstall(false, true)
 }
 
 /** Install at ~3:30am local time so the kiosk never restarts mid-use. */
