@@ -8,6 +8,58 @@ function isVideoUrl(url: string): boolean {
   return url.includes('?video=1')
 }
 
+type SlideMode = 'zoom' | { from: string; to: string }
+
+/** Photos whose shape roughly matches the screen get the classic Ken Burns
+ *  zoom; anything that would be badly cropped pans slowly across its long
+ *  axis instead, so the whole photo is seen over the slide's duration. */
+function SlideImage({ src, seconds }: { src: string; seconds: number }): React.JSX.Element {
+  const [mode, setMode] = useState<SlideMode | null>(null)
+  const [go, setGo] = useState(false)
+
+  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+    const img = e.currentTarget
+    const imgAR = img.naturalWidth / Math.max(1, img.naturalHeight)
+    const screenAR = window.innerWidth / Math.max(1, window.innerHeight)
+    const excess = imgAR / screenAR
+    if (excess > 1.15) setMode({ from: '0% 50%', to: '100% 50%' }) // wide: pan across
+    else if (excess < 0.87) setMode({ from: '50% 0%', to: '50% 100%' }) // tall: pan down
+    else setMode('zoom')
+  }
+
+  const pan = mode !== null && mode !== 'zoom' ? mode : null
+
+  // Two frames between setting the start position and the end position, so
+  // the object-position transition actually animates instead of jumping.
+  useEffect(() => {
+    if (!pan) return
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setGo(true)))
+    return () => cancelAnimationFrame(raf)
+  }, [pan])
+
+  return (
+    <img
+      src={src}
+      alt=""
+      onLoad={onLoad}
+      className={`absolute inset-0 h-full w-full object-cover ${mode === 'zoom' ? 'animate-kenburns' : ''}`}
+      style={
+        pan
+          ? {
+              objectPosition: go ? pan.to : pan.from,
+              transition: `object-position ${seconds}s ease-in-out`,
+            }
+          : {
+              animationDuration: `${seconds + 4}s`,
+              // Hidden until measured, so panning photos don't flash centered
+              // first; the previous slide stays visible underneath meanwhile.
+              visibility: mode === null ? 'hidden' : 'visible',
+            }
+      }
+    />
+  )
+}
+
 function PhotoShow(): React.JSX.Element {
   const intervalSec = useStore((s) => s.settings?.screensaver.photoIntervalSec ?? 12)
   const [photos, setPhotos] = useState<string[] | null>(null)
@@ -63,13 +115,7 @@ function PhotoShow(): React.JSX.Element {
           className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
-        <img
-          key={current}
-          src={current}
-          alt=""
-          className="animate-kenburns absolute inset-0 h-full w-full object-cover"
-          style={{ animationDuration: `${Math.max(4, intervalSec) + 4}s` }}
-        />
+        <SlideImage key={current} src={current} seconds={Math.max(4, intervalSec)} />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
     </div>
