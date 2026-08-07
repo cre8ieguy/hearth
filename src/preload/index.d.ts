@@ -78,6 +78,9 @@ export interface HearthApi {
     cancel(query: string): Promise<Timer | null>
     set(seconds: number, label?: string): Promise<Timer>
   }
+  screen: {
+    setPower(on: boolean): Promise<void>
+  }
   system: {
     version(): Promise<string>
     quit(): Promise<void>

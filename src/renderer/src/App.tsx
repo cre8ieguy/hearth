@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useStore } from './store'
 import { playChime, voice } from './lib/voice'
 import { syncWakeWord } from './lib/wake'
+import { presence } from './lib/presence'
 import NavRail from './components/NavRail'
 import VoiceOrb from './components/VoiceOrb'
 import AssistantOverlay from './components/AssistantOverlay'
@@ -23,6 +24,14 @@ export default function App(): React.JSX.Element {
   const voiceState = useStore((s) => s.voiceState)
   const turnActive = useStore((s) => s.turnActive)
   const setScreensaver = useStore((s) => s.setScreensaver)
+
+  // Camera presence detection -> display power
+  const presenceEnabled = settings?.presence.enabled ?? false
+  const presenceMinutes = settings?.presence.offAfterMinutes ?? 10
+  useEffect(() => {
+    if (presenceEnabled) void presence.start(presenceMinutes)
+    else presence.stop()
+  }, [presenceEnabled, presenceMinutes])
 
   // Idle -> screensaver
   const idleHandle = useRef<number | null>(null)

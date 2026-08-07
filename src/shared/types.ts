@@ -57,6 +57,10 @@ export interface Settings {
     launchAtLogin: boolean
     keepAwake: boolean
   }
+  presence: {
+    enabled: boolean // camera motion detection drives display power
+    offAfterMinutes: number
+  }
   screensaver: {
     mode: 'photos' | 'youtube' | 'mix' | 'off'
     mixMinutes: number // in mix mode, minutes per phase before switching
@@ -228,6 +232,7 @@ export const DEFAULT_SETTINGS: Settings = {
   homeAssistant: { url: '', token: '' },
   location: { name: '', lat: null, lon: null, unit: 'fahrenheit' },
   display: { clock24h: false, kiosk: false, launchAtLogin: false, keepAwake: true },
+  presence: { enabled: false, offAfterMinutes: 10 },
   screensaver: {
     mode: 'photos',
     mixMinutes: 15,

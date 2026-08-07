@@ -715,6 +715,23 @@ export default function SettingsView(): React.JSX.Element {
             checked={s.display.keepAwake}
             onChange={(v) => void update({ display: { keepAwake: v } })}
           />
+          <div className="mt-2 flex flex-col gap-4 rounded-xl bg-white/5 p-4">
+            <Toggle
+              label="Presence detection — screen off when nobody's around"
+              hint="Uses the camera for simple motion detection, entirely on this device; nothing is recorded or uploaded. The screen comes back on for motion, touch, or “Hey Jarvis”."
+              checked={s.presence.enabled}
+              onChange={(v) => void update({ presence: { enabled: v } })}
+            />
+            {s.presence.enabled && (
+              <SelectField
+                label="Screen off after"
+                value={String(s.presence.offAfterMinutes)}
+                onChange={(v) => void update({ presence: { offAfterMinutes: Number(v) } })}
+                options={['2', '5', '10', '20', '30'].map((v) => ({ value: v, label: `${v} min of no motion` }))}
+                width="w-1/2"
+              />
+            )}
+          </div>
         </Section>
 
         {/* About */}

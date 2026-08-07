@@ -1,5 +1,6 @@
 import { useStore } from '../store'
 import { getActiveWakeEngine } from './wakeBridge'
+import { presence } from './presence'
 import type { AgentEvent } from '@shared/types'
 
 const SILENCE_STOP_MS = 1400 // stop this long after speech ends
@@ -101,6 +102,7 @@ class VoiceController {
 
   /** Wake-word barge-in: whatever the assistant is doing, stop it and listen. */
   async interruptAndListen(): Promise<void> {
+    presence.poke() // "Hey Jarvis" means someone's here — wake the display
     switch (this.state) {
       case 'idle':
       case 'speaking':

@@ -68,6 +68,9 @@ const api = {
     cancel: (query: string) => ipcRenderer.invoke('timers:cancel', query),
     set: (seconds: number, label?: string) => ipcRenderer.invoke('timers:set', seconds, label),
   },
+  screen: {
+    setPower: (on: boolean) => ipcRenderer.invoke('screen:set-power', on),
+  },
   system: {
     version: () => ipcRenderer.invoke('system:version'),
     quit: () => ipcRenderer.invoke('system:quit'),

@@ -8,6 +8,7 @@ import * as spotify from './services/spotify'
 import * as google from './services/google'
 import * as ha from './services/homeassistant'
 import * as weather from './services/weather'
+import { setDisplayPower } from './services/screenpower'
 import * as photos from './services/photos'
 import * as timers from './services/timers'
 import { checkForUpdatesNow, getUpdateStatus, installUpdateNow, isUpdateReady } from './services/updater'
@@ -79,6 +80,7 @@ export function registerIpc(): void {
   ipcMain.handle('weather:get', (_e, force?: boolean) => weather.getWeather(!!force))
   ipcMain.handle('weather:geocode', (_e, q: string) => weather.geocode(q))
   ipcMain.handle('photos:list', () => photos.listPhotos())
+  ipcMain.handle('screen:set-power', (_e, on: boolean) => setDisplayPower(!!on))
   ipcMain.handle('timers:list', () => timers.listTimers())
   ipcMain.handle('timers:cancel', (_e, query: string) => timers.cancelTimer(query))
   ipcMain.handle('timers:set', (_e, seconds: number, label?: string) => timers.setTimer(seconds, label))
