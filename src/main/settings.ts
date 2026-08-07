@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import fs from 'fs'
 import path from 'path'
-import { DEFAULT_SETTINGS, type Settings } from '@shared/types'
+import { DEFAULT_SETTINGS, type Settings, type YoutubePreset } from '@shared/types'
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends (infer U)[]
@@ -36,6 +36,23 @@ function deepMerge<T>(base: T, patch: unknown): T {
   return out as T
 }
 
+// Presets we shipped as defaults that were live streams; YouTube no longer
+// plays live streams in embedded players, so saved copies get swapped for
+// equivalent regular uploads.
+const LIVE_PRESET_SWAPS: Record<string, YoutubePreset> = {
+  jfKfPfyJRdk: { name: 'Lofi study session', videoId: 'lTRiuFIWV54' },
+  '4xDzrJKXOOY': { name: 'Synthwave mix', videoId: 'Td0iFptEmo0' },
+}
+
+function migrate(s: Settings): void {
+  s.screensaver.youtubePresets = s.screensaver.youtubePresets.map((p) => {
+    const swap = LIVE_PRESET_SWAPS[p.videoId]
+    if (!swap) return p
+    if (s.screensaver.activePreset === p.name) s.screensaver.activePreset = swap.name
+    return swap
+  })
+}
+
 export function getSettings(): Settings {
   if (cached) return cached
   try {
@@ -44,6 +61,7 @@ export function getSettings(): Settings {
   } catch {
     cached = structuredClone(DEFAULT_SETTINGS)
   }
+  migrate(cached)
   return cached
 }
 

@@ -137,6 +137,15 @@ be closed". Fixes layered into `build/installer.nsh`:
   Chromium profile; **cannot** share desktop Chrome's cookies (app-bound encryption). It presents
   a plain-Chrome UA (Google logins reject "embedded" UAs) and has an "Open in Chrome ↗" button
   (shell.openExternal, http/https only).
+- YouTube screensaver embeds (learned the hard way, verified by experiment):
+  1. Requests from the app:// origin carry no Referer → YouTube error 153. main/index.ts injects
+     one for /embed/ URLs only.
+  2. The referer must be a *third-party* site — `https://www.youtube.com/` itself gets rejected
+     with error 152-4 ("video unavailable").
+  3. **Live streams cannot be embedded at all** — they fail ("live stream recording is not
+     available") from any origin, even plain Chromium on localhost. YouTube-side restriction;
+     no referer fixes it. Presets must be regular uploads (settings.ts migrates the two old
+     live-radio default presets on load). Embedded players do show YouTube pre-roll ads.
 - Subscriptions: Claude Pro/Max and ChatGPT plans **cannot** power the app — API keys only.
   Consumer OAuth is blocked server-side for third-party use; don't chase it. Ben chose to keep
   all-OpenAI voice after being offered free Edge-TTS/local-Whisper — don't re-propose unless

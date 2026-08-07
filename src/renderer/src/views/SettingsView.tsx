@@ -663,8 +663,9 @@ export default function SettingsView(): React.JSX.Element {
               </button>
             </div>
             <p className="mt-2 text-xs text-white/30">
-              Search YouTube for “4k aquarium”, “live jellyfish cam”, “earth from ISS live”, “times
-              square live cam”… then paste the link here.
+              Search YouTube for “10 hour aquarium 4k”, “fireplace 10 hours”, “lofi study mix”…
+              then paste the link here. Live streams won’t play (YouTube blocks them in embedded
+              players) — pick regular uploads, the longer the better.
             </p>
           </div>
           <div className="flex gap-6">

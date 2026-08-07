@@ -1,40 +1,61 @@
-# iCloud photos on the screensaver
+# iCloud Favourites on the screensaver (automatic)
 
-Goal: your iCloud **Favourites** playing in Hearth's photo screensaver, staying in sync.
+Goal: your iCloud **Favourites** playing in Hearth's photo screensaver, kept in sync
+automatically — the only thing you ever do is tap ♥ on a photo.
 
-The trick: Hearth's slideshow can't display HEIC (the iPhone default format), so don't point
-it at the raw synced library. Instead, put the photos you want in a **shared album** — iCloud
-converts shared-album photos to JPEG — and let iCloud for Windows sync that album to a folder.
+Two problems to route around:
 
-## 1. Make the album (on your iPhone or Mac)
+- Hearth's slideshow can't display HEIC (the iPhone default format), only JPEG/PNG/etc.
+- iCloud for Windows doesn't expose "Favourites" as a folder, so syncing the photo library
+  to the PC can't give you favourites-only.
 
-1. Photos → Albums → **Favourites** → select the photos you want on the wall.
-2. Share → **Add to Shared Album** → **New Shared Album**, name it e.g. `Hearth Frame`.
-   You don't need to invite anyone.
-3. New favourites don't flow in automatically — add them the same way whenever you like.
-   (Shared albums hold up to 5,000 photos; Hearth shows up to 800.)
+The fix is a small iPhone **Shortcut** that runs on a schedule: it grabs your favourites,
+converts them to JPEG, and drops them in an iCloud Drive folder — which iCloud for Windows
+mirrors to the kiosk as ordinary files.
 
-## 2. Install iCloud for Windows (on the kiosk PC)
+## 1. Build the Shortcut (on your iPhone, ~5 minutes)
 
-1. Microsoft Store → search **iCloud** (publisher: Apple) → install. It's free.
-2. Sign in with your Apple ID (approve the two-factor prompt on your iPhone).
-3. Turn on **Photos** (make sure Shared Albums is enabled if your version shows the option).
-   You can leave iCloud Drive, Mail, etc. off.
-4. In File Explorer, find the album folder. Depending on the app version it's somewhere like:
-   - `C:\Users\<you>\Pictures\iCloud Photos\Shared\Hearth Frame`
-   - or an `iCloud Photos` entry in the Explorer sidebar → `Shared` / `Shared Albums`
-5. If right-clicking the folder offers **"Always keep on this device"**, turn it on — that
-   forces real files instead of on-demand placeholders, which the slideshow needs.
+Shortcuts app → **+** to create a new shortcut, name it `Hearth Photos`:
+
+1. **Find Photos** — add filter: *Favourite* is *true*. Sort by *Creation Date*, latest
+   first. Turn **Limit** on, e.g. 200 (keeps the nightly run fast; raise it if you like).
+2. **Repeat with Each** (over the photos), and inside the repeat block:
+   - **Convert Image** — convert *Repeat Item* to **JPEG** (this handles HEIC).
+   - **Set Name** — rename the *Converted Image* to `hearth-` followed by the
+     *Repeat Index* magic variable (gives stable names like `hearth-1`, `hearth-2`…).
+   - **Save File** — save the *Renamed Item* to **iCloud Drive**, destination folder
+     `Shortcuts/Hearth Photos`. Turn **Ask Where to Save** *off* and
+     **Overwrite If File Exists** *on* (that's what keeps the folder in sync).
+
+Run it once manually to check: Files app → iCloud Drive → Shortcuts → Hearth Photos should
+fill with JPEGs.
+
+Then automate it: Shortcuts → **Automation** tab → **+** → **Time of Day** → e.g. 3:00 AM,
+daily → **Run Immediately** (no confirmation) → choose the `Hearth Photos` shortcut.
+
+## 2. iCloud for Windows (on the kiosk PC)
+
+1. Microsoft Store → install **iCloud** (publisher: Apple) → sign in with your Apple ID
+   (approve the two-factor prompt on your iPhone).
+2. Enable **iCloud Drive**. (Photos sync isn't needed for this — leave it off unless you
+   want it for something else.)
+3. In File Explorer confirm the folder appears:
+   `C:\Users\<you>\iCloudDrive\Shortcuts\Hearth Photos`
+4. If right-clicking the folder offers **"Always keep on this device"**, turn it on so the
+   slideshow gets real files instead of on-demand placeholders.
 
 ## 3. Point Hearth at it
 
-Settings → Screensaver → set the **photos folder** to that album folder, and mode to
-**Photos**. Done — photos added to the album from your phone appear on the wall after
-iCloud syncs them down (usually minutes).
+Settings → Screensaver → set the **photos folder** to that path, mode **Photos**.
+
+From then on: ♥ a photo on your phone → the 3 AM shortcut exports it → iCloud Drive syncs
+it down → it's on the wall by morning.
 
 ## Notes
 
-- iCloud for Windows starts with Windows by default; leave that on so syncing continues
-  unattended on the kiosk.
+- iCloud for Windows starts with Windows by default; leave that on.
+- Un-favourited photos drop out on the next run as their slots are overwritten. If you ever
+  shrink your favourites a lot, a few stale files can linger — just empty the folder once
+  and let the shortcut refill it.
 - If the slideshow says "No photos found", check the folder in Explorer actually contains
-  `.jpg` files (not placeholder icons), and that the path in Settings matches exactly.
+  `.jpg` files (not placeholder icons) and the path in Settings matches exactly.

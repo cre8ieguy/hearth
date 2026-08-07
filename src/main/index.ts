@@ -141,8 +141,10 @@ app.whenReady().then(() => {
       ],
     },
     (details, callback) => {
+      // Must be a third-party site: claiming youtube.com as the embedder
+      // trips their validation instead (error 152-4).
       if (!details.requestHeaders['Referer']) {
-        details.requestHeaders['Referer'] = 'https://www.youtube.com/'
+        details.requestHeaders['Referer'] = 'https://cre8ieguy.github.io/'
       }
       callback({ requestHeaders: details.requestHeaders })
     },

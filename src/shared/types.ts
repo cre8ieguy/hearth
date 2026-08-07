@@ -232,11 +232,13 @@ export const DEFAULT_SETTINGS: Settings = {
     idleMinutes: 5,
     photosDir: '',
     photoIntervalSec: 12,
+    // Non-live uploads only: YouTube refuses live streams in embedded players.
     youtubePresets: [
-      { name: 'Lofi Girl radio', videoId: 'jfKfPfyJRdk' },
-      { name: 'Synthwave radio', videoId: '4xDzrJKXOOY' },
+      { name: 'Lofi study session', videoId: 'lTRiuFIWV54' },
+      { name: 'Synthwave mix', videoId: 'Td0iFptEmo0' },
+      { name: 'Aquarium 4K', videoId: 'Gw4bRy4SoK0' },
     ],
-    activePreset: 'Lofi Girl radio',
+    activePreset: 'Lofi study session',
     youtubeMuted: false,
     showClock: true,
   },
