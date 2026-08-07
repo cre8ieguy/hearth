@@ -15,20 +15,31 @@ mirrors to the kiosk as ordinary files.
 
 ## 1. Build the Shortcut (on your iPhone, ~5 minutes)
 
+The shortcut is **incremental**: it checks which photos are already exported and only
+converts/uploads new favourites. The first run uploads everything once; after that a
+nightly run costs a few MB at most (usually nothing).
+
 Shortcuts app → **+** to create a new shortcut, name it `Hearth Photos`:
 
-1. **Find Photos** — add filter: *Favourite* is *true*. Sort by *Creation Date*, latest
-   first. Turn **Limit** on, e.g. 200 (keeps the nightly run fast; raise it if you like).
-2. **Repeat with Each** (over the photos), and inside the repeat block:
-   - **Convert Image** — convert *Repeat Item* to **JPEG** (this handles HEIC).
-   - **Set Name** — rename the *Converted Image* to `hearth-` followed by the
-     *Repeat Index* magic variable (gives stable names like `hearth-1`, `hearth-2`…).
-   - **Save File** — save the *Renamed Item* to **iCloud Drive**, destination folder
-     `Shortcuts/Hearth Photos`. Turn **Ask Where to Save** *off* and
-     **Overwrite If File Exists** *on* (that's what keeps the folder in sync).
+1. **Get Contents of Folder** — iCloud Drive → `Shortcuts/Hearth Photos`
+   (create the folder in the Files app first).
+2. **Get Details of Files** — get **Name** of *Contents of Folder*.
+3. **Combine Text** — combine *Names* with *New Lines*. (This text is the "already
+   exported" list; grab it as the magic variable in step 5.)
+4. **Find Photos** — filter: *Favourite* is *true*. Sort by *Creation Date*, latest first.
+   Limit off (Hearth shows up to 800 photos).
+5. **Repeat with Each** (over the photos), and inside the repeat block:
+   - **If** — *Combined Text* **does not contain** → *Name* of *Repeat Item*. Inside the If:
+     - **Convert Image** — convert *Repeat Item* to **JPEG** (this handles HEIC).
+     - **Set Name** — rename the *Converted Image* to: *Name* of *Repeat Item*, then `.jpg`
+       (type the `.jpg` after the magic variable).
+     - **Save File** — save to **iCloud Drive** → `Shortcuts/Hearth Photos`,
+       **Ask Where to Save** *off*, **Overwrite If File Exists** *on*.
+   - **End If**
 
-Run it once manually to check: Files app → iCloud Drive → Shortcuts → Hearth Photos should
-fill with JPEGs.
+Run it once manually to check (plug in and use Wi-Fi for this first big run): Files app →
+iCloud Drive → Shortcuts → Hearth Photos should fill with JPEGs. Run it a second time —
+it should finish almost instantly, exporting nothing.
 
 Then automate it: Shortcuts → **Automation** tab → **+** → **Time of Day** → e.g. 3:00 AM,
 daily → **Run Immediately** (no confirmation) → choose the `Hearth Photos` shortcut.
@@ -54,8 +65,8 @@ it down → it's on the wall by morning.
 ## Notes
 
 - iCloud for Windows starts with Windows by default; leave that on.
-- Un-favourited photos drop out on the next run as their slots are overwritten. If you ever
-  shrink your favourites a lot, a few stale files can linger — just empty the folder once
-  and let the shortcut refill it.
+- Because the sync is incremental (add-only), **un-favouriting a photo does not remove it**
+  from the frame. Every few months, if you care, empty the `Hearth Photos` folder in the
+  Files app and run the shortcut manually once to rebuild it from current favourites.
 - If the slideshow says "No photos found", check the folder in Explorer actually contains
   `.jpg` files (not placeholder icons) and the path in Settings matches exactly.
