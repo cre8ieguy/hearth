@@ -338,6 +338,19 @@ export default function SettingsView(): React.JSX.Element {
               ]}
               width="flex-1"
             />
+            <SelectField
+              label="Speaking speed"
+              value={String(s.openai.ttsSpeed)}
+              onChange={(v) => void update({ openai: { ttsSpeed: Number(v) } })}
+              options={[
+                { value: '1', label: 'Normal' },
+                { value: '1.1', label: 'Brisk (1.1×)' },
+                { value: '1.2', label: 'Quick (1.2×)' },
+                { value: '1.35', label: 'Fast (1.35×)' },
+                { value: '1.5', label: 'Very fast (1.5×)' },
+              ]}
+              width="flex-1"
+            />
           </div>
           <Toggle
             label="Speak replies out loud"

@@ -155,7 +155,10 @@ class VoiceController {
     const engine = getActiveWakeEngine()
     if (engine?.isAlive()) {
       this.captureMode = 'pcm'
-      engine.startPcmCapture(640, (rms) => {
+      // Long enough that the whole "Hey Jarvis" lands in the recording: a full
+      // wake phrase transcribes cleanly and strips reliably, whereas a chopped
+      // tail becomes garbage words glued onto the command.
+      engine.startPcmCapture(1520, (rms) => {
         useStore.getState().setMicLevel(Math.min(1, rms * 14))
         if (rms > SPEECH_RMS) {
           this.speechDetected = true
@@ -292,8 +295,8 @@ class VoiceController {
   private async processAudio(bytes: Uint8Array, mime: string): Promise<void> {
     try {
       let text = await window.hearth.speech.transcribe(bytes, mime)
-      // Drop the wake word itself if the pre-roll caught its tail.
-      text = text.replace(/^\s*(hey|ok|okay)?[,.!\s]*jarvis[,.!?\s]+/i, '').trim()
+      // Drop the wake phrase (plus any garbled fragment of it) from the front.
+      text = text.replace(/^[\s\S]{0,16}?\bjarvis\b[,.!?\s]*/i, '').trim()
       if (!text || STOP_PHRASE.test(text)) {
         this.setState('idle')
         return
@@ -450,6 +453,9 @@ class VoiceController {
       const blob = new Blob([bytes.slice().buffer], { type: 'audio/mpeg' })
       this.ttsUrl = URL.createObjectURL(blob)
       this.ttsAudio = new Audio(this.ttsUrl)
+      // Chromium time-stretches without shifting pitch, so this is a free,
+      // reliable speed control (the API's own speed param is model-dependent).
+      this.ttsAudio.playbackRate = useStore.getState().settings?.openai.ttsSpeed ?? 1
       let settled = false
       const done = (): void => {
         if (settled) return

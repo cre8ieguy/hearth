@@ -16,6 +16,7 @@ export interface Settings {
     sttModel: string
     ttsModel: string
     ttsVoice: string
+    ttsSpeed: number // playback rate, pitch-preserved (1 = as synthesized)
   }
   assistant: {
     name: string
@@ -217,6 +218,7 @@ export const DEFAULT_SETTINGS: Settings = {
     sttModel: 'gpt-4o-transcribe',
     ttsModel: 'gpt-4o-mini-tts',
     ttsVoice: 'nova',
+    ttsSpeed: 1.2,
   },
   assistant: { name: 'Jarvis', speakReplies: true, continuousConversation: false, resetAfterMinutes: 15 },
   wakeWord: { enabled: true, engine: 'openwakeword', accessKey: '', keyword: 'Jarvis', sensitivity: 0.6 },

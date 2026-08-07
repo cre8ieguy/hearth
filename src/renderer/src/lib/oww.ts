@@ -99,7 +99,7 @@ export class OpenWakeWordEngine {
         this.sampleLen = 0
 
         this.preRoll.push(chunk)
-        if (this.preRoll.length > 12) this.preRoll.shift() // ~1s of context
+        if (this.preRoll.length > 20) this.preRoll.shift() // ~1.6s of context
 
         if (this.capture) {
           this.capture.chunks.push(chunk)

@@ -130,6 +130,24 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(file).toString())
   })
 
+  // YouTube rejects embedded-player requests that carry no HTTP Referer
+  // ("error 153"), and Chromium sends none from our app:// origin. Scoped to
+  // /embed/ so ordinary YouTube browsing in the web panel is untouched.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    {
+      urls: [
+        'https://www.youtube.com/embed/*',
+        'https://www.youtube-nocookie.com/embed/*',
+      ],
+    },
+    (details, callback) => {
+      if (!details.requestHeaders['Referer']) {
+        details.requestHeaders['Referer'] = 'https://www.youtube.com/'
+      }
+      callback({ requestHeaders: details.requestHeaders })
+    },
+  )
+
   // The renderer needs the microphone for push-to-talk.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(['media', 'audioCapture', 'mediaKeySystem', 'fullscreen'].includes(permission))
