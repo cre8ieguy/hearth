@@ -8,54 +8,81 @@ function isVideoUrl(url: string): boolean {
   return url.includes('?video=1')
 }
 
-type SlideMode = 'zoom' | { from: string; to: string }
+const MAX_OFFSCREEN = 0.3 // at most this fraction of a photo may hang off-screen
+
+type SlideLayout =
+  | { kind: 'zoom' }
+  | { kind: 'pan'; w: number; h: number; x0: number; y0: number; x1: number; y1: number }
 
 /** Photos whose shape roughly matches the screen get the classic Ken Burns
- *  zoom; anything that would be badly cropped pans slowly across its long
- *  axis instead, so the whole photo is seen over the slide's duration. */
+ *  zoom. Mismatched photos are shrunk at display time until at most 30% hangs
+ *  off-screen (slim bars on the other axis), then that overflow is panned
+ *  gently over the slide's duration — the whole photo gets seen. */
 function SlideImage({ src, seconds }: { src: string; seconds: number }): React.JSX.Element {
-  const [mode, setMode] = useState<SlideMode | null>(null)
+  const [layout, setLayout] = useState<SlideLayout | null>(null)
   const [go, setGo] = useState(false)
 
   const onLoad = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-    const img = e.currentTarget
-    const imgAR = img.naturalWidth / Math.max(1, img.naturalHeight)
-    const screenAR = window.innerWidth / Math.max(1, window.innerHeight)
-    const excess = imgAR / screenAR
-    if (excess > 1.15) setMode({ from: '0% 50%', to: '100% 50%' }) // wide: pan across
-    else if (excess < 0.87) setMode({ from: '50% 0%', to: '50% 100%' }) // tall: pan down
-    else setMode('zoom')
+    const { naturalWidth: nw, naturalHeight: nh } = e.currentTarget
+    const sw = window.innerWidth
+    const sh = window.innerHeight
+    if (!nw || !nh) return setLayout({ kind: 'zoom' })
+    const sCover = Math.max(sw / nw, sh / nh) // scale that fills the screen
+    const tall = nh * sCover - sh > nw * sCover - sw // which axis overflows
+    const coverOverflow = tall ? 1 - sh / (nh * sCover) : 1 - sw / (nw * sCover)
+    if (coverOverflow <= 0.12) return setLayout({ kind: 'zoom' }) // minor crop is fine
+    const s = tall
+      ? Math.min(sCover, sh / ((1 - MAX_OFFSCREEN) * nh))
+      : Math.min(sCover, sw / ((1 - MAX_OFFSCREEN) * nw))
+    const w = nw * s
+    const h = nh * s
+    setLayout(
+      tall
+        ? { kind: 'pan', w, h, x0: (sw - w) / 2, y0: 0, x1: (sw - w) / 2, y1: sh - h }
+        : { kind: 'pan', w, h, x0: 0, y0: (sh - h) / 2, x1: sw - w, y1: (sh - h) / 2 },
+    )
   }
 
-  const pan = mode !== null && mode !== 'zoom' ? mode : null
+  const pan = layout?.kind === 'pan' ? layout : null
 
-  // Two frames between setting the start position and the end position, so
-  // the object-position transition actually animates instead of jumping.
+  // Two frames between start and end positions so the transform transition
+  // actually animates instead of jumping straight to the end.
   useEffect(() => {
     if (!pan) return
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => setGo(true)))
     return () => cancelAnimationFrame(raf)
   }, [pan])
 
+  if (pan) {
+    return (
+      <img
+        src={src}
+        alt=""
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: pan.w,
+          height: pan.h,
+          maxWidth: 'none',
+          transform: `translate3d(${go ? pan.x1 : pan.x0}px, ${go ? pan.y1 : pan.y0}px, 0)`,
+          transition: `transform ${seconds}s ease-in-out`,
+        }}
+      />
+    )
+  }
   return (
     <img
       src={src}
       alt=""
       onLoad={onLoad}
-      className={`absolute inset-0 h-full w-full object-cover ${mode === 'zoom' ? 'animate-kenburns' : ''}`}
-      style={
-        pan
-          ? {
-              objectPosition: go ? pan.to : pan.from,
-              transition: `object-position ${seconds}s ease-in-out`,
-            }
-          : {
-              animationDuration: `${seconds + 4}s`,
-              // Hidden until measured, so panning photos don't flash centered
-              // first; the previous slide stays visible underneath meanwhile.
-              visibility: mode === null ? 'hidden' : 'visible',
-            }
-      }
+      className={`absolute inset-0 h-full w-full object-cover ${layout ? 'animate-kenburns' : ''}`}
+      style={{
+        animationDuration: `${seconds + 4}s`,
+        // Hidden until measured, so mismatched photos don't flash cropped
+        // first; the previous slide stays visible underneath meanwhile.
+        visibility: layout === null ? 'hidden' : 'visible',
+      }}
     />
   )
 }
