@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, type ScreensaverState } from '../store'
 import Clock from './Clock'
 
 const MAX_VIDEO_SEC = 120 // a video slide plays to its end, but never longer
+const FADE_MS = 700 // fade-to-black transition between slides
 
 function isVideoUrl(url: string): boolean {
   return url.includes('?video=1')
@@ -100,6 +101,21 @@ function PhotoShow(): React.JSX.Element {
     setIndex((i) => (photos && photos.length > 0 ? (i + 1) % photos.length : 0))
   }, [photos])
 
+  // Fade the outgoing slide to black, then swap and fade the next one up —
+  // no more old photo showing through around the new one.
+  const fadingRef = useRef(false)
+  const [fading, setFading] = useState(false)
+  const fadeAdvance = useCallback(() => {
+    if (fadingRef.current) return // e.g. video onEnded racing the cap timer
+    fadingRef.current = true
+    setFading(true)
+    window.setTimeout(() => {
+      advance()
+      fadingRef.current = false
+      setFading(false)
+    }, FADE_MS)
+  }, [advance])
+
   const isVideo = !!photos?.length && isVideoUrl(photos[index])
 
   // Photos advance on the interval; videos play through to onEnded, with a
@@ -107,9 +123,9 @@ function PhotoShow(): React.JSX.Element {
   useEffect(() => {
     if (!photos || photos.length < 2) return
     const seconds = isVideo ? MAX_VIDEO_SEC : Math.max(4, intervalSec)
-    const handle = setTimeout(advance, seconds * 1000)
+    const handle = setTimeout(fadeAdvance, seconds * 1000)
     return () => clearTimeout(handle)
-  }, [photos, index, intervalSec, isVideo, advance])
+  }, [photos, index, intervalSec, isVideo, fadeAdvance])
 
   if (!photos) return <div />
   if (photos.length === 0) {
@@ -123,27 +139,32 @@ function PhotoShow(): React.JSX.Element {
   }
 
   const current = photos[index]
-  const previous = photos[(index - 1 + photos.length) % photos.length]
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      {photos.length > 1 && !isVideoUrl(previous) && (
-        <img key={previous + '-prev'} src={previous} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      )}
-      {isVideo ? (
-        <video
-          key={current}
-          src={current}
-          autoPlay
-          muted
-          playsInline
-          onEnded={advance}
-          onError={advance} // undecodable file -> skip rather than hang
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : (
-        <SlideImage key={current} src={current} seconds={Math.max(4, intervalSec)} />
-      )}
+    <div className="relative h-full w-full overflow-hidden bg-black">
+      <div
+        key={current}
+        className="absolute inset-0"
+        style={{
+          opacity: fading ? 0 : 1,
+          transition: `opacity ${FADE_MS}ms ease-in-out`,
+          animation: `slidefade ${FADE_MS}ms ease-in-out`, // fade up from black on mount
+        }}
+      >
+        {isVideo ? (
+          <video
+            src={current}
+            autoPlay
+            muted
+            playsInline
+            onEnded={fadeAdvance}
+            onError={fadeAdvance} // undecodable file -> skip rather than hang
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <SlideImage src={current} seconds={Math.max(4, intervalSec)} />
+        )}
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
     </div>
   )

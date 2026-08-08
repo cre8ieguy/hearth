@@ -91,6 +91,12 @@ textarea {
   animation: kenburns 16s ease-in-out forwards;
 }
 
+@keyframes slidefade {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes fadein {
   from {
     opacity: 0;
