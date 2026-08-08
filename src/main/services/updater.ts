@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app } from 'electron'
 import { send } from '../window'
 
 /**
@@ -60,18 +60,16 @@ export async function startAutoUpdater(): Promise<void> {
   }
 }
 
-/** Destroy windows first so process teardown is instant — shrinks the window
- *  where the old exe is still lock-held when the installer's uninstall runs.
- *  Install is NON-silent on purpose: silent + force-run-after has a years-old
- *  electron-updater/NSIS bug where the app never relaunches, while the visible
- *  one-click installer always starts the app when it finishes — the same code
- *  path as a manual install, proven on the kiosk. */
+/** Install non-silent with run-after: the visible one-click installer starts
+ *  the app when it finishes — same code path as a manual install.
+ *
+ *  Do NOT destroy windows before calling this (the old lock-window trick):
+ *  with the app already tearing down, electron-updater switches to its
+ *  install-on-quit fallback, which installs silently WITHOUT run-after and
+ *  the app never relaunches — that was the "doesn't restart after update"
+ *  bug. Lock protection is now the installer's job anyway: customInit
+ *  taskkills Hearth and retries until the old exe is provably deletable. */
 function hardQuitAndInstall(auto: { quitAndInstall: (a: boolean, b: boolean) => void }): void {
-  try {
-    for (const win of BrowserWindow.getAllWindows()) win.destroy()
-  } catch {
-    // window already gone
-  }
   auto.quitAndInstall(false, true)
 }
 
