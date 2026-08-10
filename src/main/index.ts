@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, powerSaveBlocker, protocol, session } from 'electron'
+import { app, BrowserWindow, net, powerMonitor, powerSaveBlocker, protocol, session } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath, pathToFileURL } from 'url'
@@ -159,6 +159,24 @@ app.whenReady().then(() => {
   createWindow()
   applyKeepAwake()
   applyLoginItem()
+
+  // Reclaim the display: if someone used the PC for something else (browser,
+  // Explorer, Esc'd out of kiosk) and walked away, bring Hearth back to the
+  // front once the whole system has been idle for the screensaver delay. The
+  // renderer's own idle timer has started the ambient mode by then.
+  if (app.isPackaged) {
+    setInterval(() => {
+      const s = getSettings()
+      if (!win || s.screensaver.mode === 'off') return
+      if (powerMonitor.getSystemIdleTime() < Math.max(1, s.screensaver.idleMinutes) * 60) return
+      const needsKiosk = s.display.kiosk && !win.isKiosk()
+      if (win.isFocused() && !needsKiosk) return
+      win.show()
+      if (needsKiosk) win.setKiosk(true)
+      win.focus()
+      win.moveTop()
+    }, 30_000)
+  }
   spotify.startPolling()
   void startAutoUpdater()
 
