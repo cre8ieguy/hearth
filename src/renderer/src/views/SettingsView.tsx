@@ -731,6 +731,30 @@ export default function SettingsView(): React.JSX.Element {
                 width="w-1/2"
               />
             )}
+            <Toggle
+              label="Night hours — screen off on a schedule"
+              hint="The display sleeps between these hours. Touch or “Hey Jarvis” wakes it for 10 minutes; it comes back on by itself when the window ends."
+              checked={s.presence.nightEnabled}
+              onChange={(v) => void update({ presence: { nightEnabled: v } })}
+            />
+            {s.presence.nightEnabled && (
+              <div className="flex gap-4">
+                <SelectField
+                  label="Off from"
+                  value={String(s.presence.nightStartHour)}
+                  onChange={(v) => void update({ presence: { nightStartHour: Number(v) } })}
+                  options={Array.from({ length: 24 }, (_, h) => ({ value: String(h), label: `${h}:00` }))}
+                  width="flex-1"
+                />
+                <SelectField
+                  label="Until"
+                  value={String(s.presence.nightEndHour)}
+                  onChange={(v) => void update({ presence: { nightEndHour: Number(v) } })}
+                  options={Array.from({ length: 24 }, (_, h) => ({ value: String(h), label: `${h}:00` }))}
+                  width="flex-1"
+                />
+              </div>
+            )}
           </div>
         </Section>
 

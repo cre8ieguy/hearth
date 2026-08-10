@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { spawn } from 'child_process'
 import { send } from '../window'
 
 /**
@@ -60,16 +61,40 @@ export async function startAutoUpdater(): Promise<void> {
   }
 }
 
-/** Install non-silent with run-after: the visible one-click installer starts
- *  the app when it finishes — same code path as a manual install.
- *
- *  Do NOT destroy windows before calling this (the old lock-window trick):
- *  with the app already tearing down, electron-updater switches to its
- *  install-on-quit fallback, which installs silently WITHOUT run-after and
- *  the app never relaunches — that was the "doesn't restart after update"
- *  bug. Lock protection is now the installer's job anyway: customInit
- *  taskkills Hearth and retries until the old exe is provably deletable. */
+/** Detached PowerShell watchdog: waits for Hearth to quit and the installer
+ *  to finish, then starts Hearth if the installer didn't. Both electron-updater
+ *  relaunch mechanisms (silent --force-run and non-silent run-after) failed to
+ *  restart the app on the kiosk, so we stopped trusting them. Waiting for the
+ *  installer process to exit before launching avoids the exe-lock saga. */
+function spawnRelaunchWatchdog(): void {
+  if (process.platform !== 'win32') return
+  const exe = process.execPath
+  const script =
+    // Give the app a moment to begin quitting, then wait (up to 10 min) until
+    // neither Hearth nor any installer/uninstaller process is running.
+    'Start-Sleep -Seconds 3; ' +
+    'for($i=0; $i -lt 600; $i++){ ' +
+    '$h = Get-Process -Name Hearth -ErrorAction SilentlyContinue; ' +
+    "$s = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -like '*setup*' -or $_.ProcessName -eq 'Un_A' }; " +
+    'if(-not $h -and -not $s){ break }; ' +
+    'if($h -and -not $s -and $i -gt 30){ exit }; ' + // app is (back) up, installer gone — nothing to do
+    'Start-Sleep -Seconds 1 }; ' +
+    'Start-Sleep -Seconds 3; ' +
+    'if(-not (Get-Process -Name Hearth -ErrorAction SilentlyContinue)){ ' +
+    `Start-Process -FilePath "${exe}" }`
+  spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', script], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+  }).unref()
+}
+
+/** Non-silent install with run-after, plus our own relaunch watchdog. Do NOT
+ *  destroy windows first — that pushes electron-updater into its install-on-
+ *  quit fallback (silent, no run-after). Exe-lock protection lives in the
+ *  installer's customInit (taskkill + wait-until-deletable). */
 function hardQuitAndInstall(auto: { quitAndInstall: (a: boolean, b: boolean) => void }): void {
+  spawnRelaunchWatchdog()
   auto.quitAndInstall(false, true)
 }
 

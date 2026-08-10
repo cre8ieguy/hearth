@@ -25,13 +25,18 @@ export default function App(): React.JSX.Element {
   const turnActive = useStore((s) => s.turnActive)
   const setScreensaver = useStore((s) => s.setScreensaver)
 
-  // Camera presence detection -> display power
-  const presenceEnabled = settings?.presence.enabled ?? false
-  const presenceMinutes = settings?.presence.offAfterMinutes ?? 10
+  // Camera presence + night window -> display power
+  const presenceConf = settings?.presence
   useEffect(() => {
-    if (presenceEnabled) void presence.start(presenceMinutes)
-    else presence.stop()
-  }, [presenceEnabled, presenceMinutes])
+    if (!presenceConf) return
+    void presence.configure({
+      camera: presenceConf.enabled,
+      offAfterMinutes: presenceConf.offAfterMinutes,
+      night: presenceConf.nightEnabled,
+      nightStartHour: presenceConf.nightStartHour,
+      nightEndHour: presenceConf.nightEndHour,
+    })
+  }, [presenceConf])
 
   // Idle -> screensaver
   const idleHandle = useRef<number | null>(null)

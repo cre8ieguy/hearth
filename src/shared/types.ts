@@ -60,6 +60,9 @@ export interface Settings {
   presence: {
     enabled: boolean // camera motion detection drives display power
     offAfterMinutes: number
+    nightEnabled: boolean // scheduled screen-off window
+    nightStartHour: number // 0-23
+    nightEndHour: number // 0-23; window may wrap midnight (e.g. 22 -> 6)
   }
   screensaver: {
     mode: 'photos' | 'youtube' | 'mix' | 'off'
@@ -232,7 +235,7 @@ export const DEFAULT_SETTINGS: Settings = {
   homeAssistant: { url: '', token: '' },
   location: { name: '', lat: null, lon: null, unit: 'fahrenheit' },
   display: { clock24h: false, kiosk: false, launchAtLogin: false, keepAwake: true },
-  presence: { enabled: false, offAfterMinutes: 10 },
+  presence: { enabled: false, offAfterMinutes: 10, nightEnabled: false, nightStartHour: 0, nightEndHour: 6 },
   screensaver: {
     mode: 'photos',
     mixMinutes: 15,
