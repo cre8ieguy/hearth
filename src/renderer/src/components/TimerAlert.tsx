@@ -1,15 +1,10 @@
-import { useEffect } from 'react'
 import { useStore } from '../store'
 
+// Deliberately no auto-dismiss: the alarm keeps ringing until someone taps
+// Dismiss or says "Hey Jarvis, stop".
 export default function TimerAlert(): React.JSX.Element | null {
   const firedTimer = useStore((s) => s.firedTimer)
   const clearFiredTimer = useStore((s) => s.clearFiredTimer)
-
-  useEffect(() => {
-    if (!firedTimer) return
-    const handle = setTimeout(clearFiredTimer, 60_000)
-    return () => clearTimeout(handle)
-  }, [firedTimer, clearFiredTimer])
 
   if (!firedTimer) return null
 

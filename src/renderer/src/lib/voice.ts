@@ -300,6 +300,7 @@ class VoiceController {
       // Drop the wake phrase (plus any garbled fragment of it) from the front.
       text = text.replace(/^[\s\S]{0,16}?\bjarvis\b[,.!?\s]*/i, '').trim()
       if (!text || STOP_PHRASE.test(text)) {
+        useStore.getState().clearFiredTimer() // "stop" also silences a ringing timer
         this.setState('idle')
         return
       }
@@ -519,7 +520,7 @@ export function playChime(times = 3): void {
     osc.type = 'sine'
     osc.frequency.value = freq
     gain.gain.setValueAtTime(0.0001, ctx.currentTime + at)
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + at + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.7, ctx.currentTime + at + 0.02)
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur)
     osc.connect(gain).connect(ctx.destination)
     osc.start(ctx.currentTime + at)

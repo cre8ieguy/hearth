@@ -481,6 +481,13 @@ export default function SettingsView(): React.JSX.Element {
             Create a “Desktop app” OAuth client in Google Cloud Console — full walkthrough in
             docs/setup-google.md.
           </p>
+          <TextField
+            label="Hide events containing"
+            value={s.google.hideTerms}
+            onCommit={(v) => void update({ google: { hideTerms: v } })}
+            placeholder="e.g. Josh School Day"
+            hint="Comma-separated. Matches event titles and calendar names; hidden everywhere (agenda, ambient screen, voice)."
+          />
           <ConnectButton
             connected={status.google}
             onConnect={() => window.hearth.google.connect()}

@@ -40,6 +40,7 @@ export interface Settings {
     clientId: string
     clientSecret: string
     tokens: OAuthTokens | null
+    hideTerms: string // comma-separated; events/calendars matching these are hidden
   }
   homeAssistant: {
     url: string
@@ -231,7 +232,7 @@ export const DEFAULT_SETTINGS: Settings = {
   assistant: { name: 'Jarvis', speakReplies: true, continuousConversation: false, resetAfterMinutes: 15 },
   wakeWord: { enabled: true, engine: 'openwakeword', accessKey: '', keyword: 'Jarvis', sensitivity: 0.6 },
   spotify: { clientId: '', preferredDeviceName: '', tokens: null },
-  google: { clientId: '', clientSecret: '', tokens: null },
+  google: { clientId: '', clientSecret: '', tokens: null, hideTerms: '' },
   homeAssistant: { url: '', token: '' },
   location: { name: '', lat: null, lon: null, unit: 'fahrenheit' },
   display: { clock24h: false, kiosk: false, launchAtLogin: false, keepAwake: true },

@@ -72,15 +72,19 @@ export default function App(): React.JSX.Element {
     void syncWakeWord()
   }, [settings?.wakeWord])
 
-  // Timer fired: chime + spoken announcement
+  // Timer fired: un-ignorable — wake the screen and chime on repeat until
+  // dismissed (banner tap, or "Hey Jarvis, stop").
   useEffect(() => {
     if (!firedTimer) return
-    playChime(3)
+    presence.poke()
+    playChime(2)
+    const chimeLoop = window.setInterval(() => playChime(2), 4200)
     const s = useStore.getState()
     if (s.settings?.assistant.speakReplies && s.status?.openai && s.voiceState === 'idle') {
       void voice.playTts(`Your ${firedTimer.label.replace(/ timer$/, '')} timer is done.`)
     }
     setScreensaver(null)
+    return () => clearInterval(chimeLoop)
   }, [firedTimer, setScreensaver])
 
   return (

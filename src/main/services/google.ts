@@ -171,8 +171,20 @@ export async function listEvents(daysAhead = 7, calendarQuery?: string): Promise
       }
     }),
   )
+  // User-configured exclusions ("Josh School Day" etc.) — matches event
+  // titles and calendar names, applied everywhere events are consumed.
+  const hide = getSettings()
+    .google.hideTerms.split(',')
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean)
   return all
     .flat()
+    .filter(
+      (e) =>
+        !hide.some(
+          (t) => e.title.toLowerCase().includes(t) || e.calendarName.toLowerCase().includes(t),
+        ),
+    )
     .sort((a, b) => a.start.localeCompare(b.start))
 }
 

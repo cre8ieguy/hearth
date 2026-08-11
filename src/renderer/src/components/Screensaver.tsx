@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, type ScreensaverState } from '../store'
 import Clock from './Clock'
+import type { CalendarEvent } from '@shared/types'
 
 const MAX_VIDEO_SEC = 120 // a video slide plays to its end, but never longer
 const FADE_MS = 700 // fade-to-black transition between slides
@@ -238,6 +239,125 @@ function MixShow(): React.JSX.Element {
   return <PhotoShow />
 }
 
+function fmtCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`
+}
+
+function fmtEventWhen(e: CalendarEvent, clock24h: boolean): string {
+  const d = e.allDay
+    ? new Date(Number(e.start.slice(0, 4)), Number(e.start.slice(5, 7)) - 1, Number(e.start.slice(8, 10)))
+    : new Date(e.start)
+  const day = d.toLocaleDateString(undefined, { weekday: 'short' })
+  if (e.allDay) return `${day} · all day`
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: !clock24h })
+  return `${day} ${time}`
+}
+
+/** Glanceable info on the ambient screen: running timers, music controls,
+ *  and the next few calendar events. Taps inside it don't wake the UI. */
+function AmbientInfo(): React.JSX.Element | null {
+  const timers = useStore((s) => s.timers)
+  const nowPlaying = useStore((s) => s.nowPlaying)
+  const clock24h = useStore((s) => s.settings?.display.clock24h ?? false)
+  const googleOk = useStore((s) => s.status?.google ?? false)
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [, setTick] = useState(0)
+
+  // 1s tick keeps timer countdowns live.
+  useEffect(() => {
+    if (timers.length === 0) return
+    const h = window.setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(h)
+  }, [timers.length])
+
+  useEffect(() => {
+    if (!googleOk) return
+    let alive = true
+    const load = (): void => {
+      window.hearth.google.events(7).then(
+        (ev) => {
+          if (alive) setEvents(ev)
+        },
+        () => undefined,
+      )
+    }
+    load()
+    const h = window.setInterval(load, 5 * 60_000)
+    return () => {
+      alive = false
+      clearInterval(h)
+    }
+  }, [googleOk])
+
+  const now = Date.now()
+  const upcoming = events
+    .filter((e) => {
+      const end = e.allDay ? new Date(e.end + 'T23:59').getTime() : new Date(e.end).getTime()
+      return end > now
+    })
+    .slice(0, 3)
+  const track = nowPlaying.active ? nowPlaying.track : undefined
+
+  if (timers.length === 0 && !track && upcoming.length === 0) return null
+
+  return (
+    <div
+      className="absolute right-10 bottom-10 z-10 flex w-96 flex-col gap-3"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      {timers.map((t) => (
+        <div
+          key={t.id}
+          className="flex items-center justify-between rounded-2xl bg-black/50 px-5 py-3 backdrop-blur-md"
+        >
+          <span className="truncate text-sm text-white/70">⏱ {t.label}</span>
+          <span className="text-2xl font-semibold tabular-nums">{fmtCountdown(t.endsAt - now)}</span>
+        </div>
+      ))}
+      {track && (
+        <div className="flex items-center gap-4 rounded-2xl bg-black/50 px-5 py-3 backdrop-blur-md">
+          {track.artUrl && <img src={track.artUrl} alt="" className="h-12 w-12 rounded-lg" />}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium">{track.title}</div>
+            <div className="truncate text-xs text-white/50">{track.artists}</div>
+          </div>
+          <button
+            onClick={() => void window.hearth.spotify.control(nowPlaying.isPlaying ? 'pause' : 'resume')}
+            className="rounded-full bg-white/10 px-4 py-2.5 text-lg hover:bg-white/20"
+          >
+            {nowPlaying.isPlaying ? '⏸' : '▶'}
+          </button>
+          <button
+            onClick={() => void window.hearth.spotify.control('next')}
+            className="rounded-full bg-white/10 px-4 py-2.5 text-lg hover:bg-white/20"
+          >
+            ⏭
+          </button>
+        </div>
+      )}
+      {upcoming.length > 0 && (
+        <div className="rounded-2xl bg-black/50 px-5 py-3 backdrop-blur-md">
+          <p className="mb-1.5 text-[10px] font-semibold tracking-widest text-white/40 uppercase">
+            Coming up
+          </p>
+          {upcoming.map((e) => (
+            <div key={e.calendarId + e.id} className="flex items-baseline justify-between gap-3 py-0.5">
+              <span className="truncate text-sm">{e.title}</span>
+              <span className="shrink-0 text-xs text-white/50">{fmtEventWhen(e, clock24h)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Screensaver({ state }: { state: ScreensaverState }): React.JSX.Element {
   const showClock = useStore((s) => s.settings?.screensaver.showClock ?? true)
   const setScreensaver = useStore((s) => s.setScreensaver)
@@ -268,6 +388,7 @@ export default function Screensaver({ state }: { state: ScreensaverState }): Rea
           <Clock size="lg" />
         </div>
       )}
+      <AmbientInfo />
     </div>
   )
 }
