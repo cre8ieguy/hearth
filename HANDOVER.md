@@ -178,14 +178,12 @@ be closed". Fixes layered into `build/installer.nsh`:
    out" appears repeatedly on the kiosk, prime suspect is Malwarebytes Web Protection
    stalling streamed binary responses → test with Web Protection off, then add an exclusion
    for `%LocalAppData%\Programs\hearth\Hearth.exe`. No report since 0.1.9; may be moot.
-2. **Updater relaunch — watchdog approach (0.1.18), verification pending:** every
-   electron-updater mechanism failed on the kiosk (silent --force-run; non-silent
-   run-after; removing the pre-destroy of windows that forced the install-on-quit
-   fallback). 0.1.18 spawns a detached PowerShell watchdog before quitAndInstall that
-   waits for Hearth + installer processes to exit, then starts Hearth.exe if the
-   installer didn't (single-instance lock guards double-start). Verify on the first
-   update *from* ≥0.1.18 — remember the one-version lag: an update is installed by the
-   code of the version being *left*.
+2. **Updater relaunch — RESOLVED (confirmed on kiosk, 0.1.18→0.1.19):** every
+   electron-updater mechanism failed (silent --force-run; non-silent run-after; with and
+   without pre-destroying windows). The working fix: updater.ts spawns a detached
+   PowerShell watchdog before quitAndInstall that waits for Hearth + installer processes
+   to exit, then starts Hearth.exe if the installer didn't (single-instance lock guards
+   double-start). Don't "simplify" this away.
 3. **iCloud favourites pipeline:** Ben finishing the first big Shortcut export (needs
    Auto-Lock off + "Always Allow" prompts) and the 3am automation, then pointing Hearth
    at `iCloudDrive\Shortcuts\Hearth Photos` on the kiosk.
