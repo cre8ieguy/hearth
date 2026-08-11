@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { getSettings, onSettingsChange } from './settings'
+import { resetAssumedState } from './services/screenpower'
 import { registerIpc, serviceStatus } from './ipc'
 import { setMainWindow, send } from './window'
 import { serveMedia } from './services/photos'
@@ -154,6 +155,9 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(['media', 'audioCapture', 'mediaKeySystem', 'fullscreen'].includes(permission))
   })
+
+  // After a system sleep, the display state is whatever the OS left it in.
+  powerMonitor.on('resume', resetAssumedState)
 
   registerIpc()
   createWindow()

@@ -27,9 +27,18 @@ const PS_ON = ps(
     '$u::SendMessage([IntPtr]0xFFFF,0x0112,[IntPtr]0xF170,[IntPtr](-1))',
 )
 
+/** Call when the system resumes: whatever we believed, the display state is
+ *  now the OS's doing, and wake commands must not be skipped. */
+export function resetAssumedState(): void {
+  isOff = false
+}
+
 export function setDisplayPower(on: boolean): void {
   if (process.platform !== 'win32') return
-  if (on === !isOff) return // already in that state; don't spawn for nothing
+  // Dedup OFF only. ON must always be sent: Windows (power plan, standby)
+  // can blank the display behind our back, and a skipped wake leaves the
+  // screen dark forever — the "doesn't wake up again" bug.
+  if (!on && isOff) return
   isOff = !on
   execFile(
     'powershell.exe',
