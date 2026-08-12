@@ -70,6 +70,9 @@ function createWindow(): void {
       spellcheck: false,
       // The assistant can open live websites in a guest <webview> panel.
       webviewTag: true,
+      // Kiosk: wake-word + presence camera must keep running when the window
+      // is occluded or the display is powered off — never throttle.
+      backgroundThrottling: false,
     },
   })
   setMainWindow(win)

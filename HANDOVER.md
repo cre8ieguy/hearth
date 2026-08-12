@@ -126,6 +126,12 @@ be closed". Fixes layered into `build/installer.nsh`:
 - The kiosk had **Smart App Control** blocking the unsigned exe → Ben turned it off (one-way
   switch). If Hearth ever spreads to more machines, wire code signing (Azure Trusted Signing
   ~US$10/mo) into electron-builder.
+- **2026-08-12: Defender started blocking auto-updates** (0.1.20→0.1.21: app quit, installer
+  never ran; manual download showed a Defender warning). Unsigned installers have zero
+  reputation and every release is a fresh binary. Mitigation: Defender exclusions for
+  `%LocalAppData%\Programs\hearth` and `%LocalAppData%\hearth-updater` (Ben applies in
+  Windows Security). Real fix: code signing (above) — makes this whole class of problem
+  disappear and should be wired up if updates keep getting eaten.
 
 ## Other gotchas encoded in the code
 
