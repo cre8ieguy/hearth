@@ -83,10 +83,12 @@ function createWindow(): void {
     win = null
   })
 
-  // Escape exits kiosk fullscreen (handy on a desk; on the wall there's no keyboard anyway).
+  // Escape toggles kiosk fullscreen: out to a window for desk work, straight
+  // back in with another press (only when kiosk mode is enabled in Settings).
   win.webContents.on('before-input-event', (_event, input) => {
-    if (input.type === 'keyDown' && input.key === 'Escape' && win?.isKiosk()) {
-      win.setKiosk(false)
+    if (input.type === 'keyDown' && input.key === 'Escape' && win) {
+      if (win.isKiosk()) win.setKiosk(false)
+      else if (getSettings().display.kiosk) win.setKiosk(true)
     }
   })
 
@@ -180,8 +182,12 @@ app.whenReady().then(() => {
       if (win.isFocused() && !needsKiosk) return
       win.show()
       if (needsKiosk) win.setKiosk(true)
+      // Windows blocks background apps from taking the foreground (focus()
+      // just flashes the taskbar) — pulse always-on-top to actually surface.
+      win.setAlwaysOnTop(true, 'screen-saver')
       win.focus()
       win.moveTop()
+      setTimeout(() => win?.setAlwaysOnTop(false), 1500)
     }, 30_000)
   }
   spotify.startPolling()
