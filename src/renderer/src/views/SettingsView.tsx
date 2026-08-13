@@ -486,7 +486,7 @@ export default function SettingsView(): React.JSX.Element {
             value={s.google.hideTerms}
             onCommit={(v) => void update({ google: { hideTerms: v } })}
             placeholder="e.g. Josh School Day"
-            hint="Comma-separated. Matches event titles and calendar names; hidden everywhere (agenda, ambient screen, voice)."
+            hint="Comma-separated. Matches whole words/phrases in event titles and calendar names (“Josh” won’t hide “Joshua”); hidden everywhere (agenda, ambient screen, voice)."
           />
           <ConnectButton
             connected={status.google}

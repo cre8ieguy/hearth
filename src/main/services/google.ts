@@ -173,18 +173,15 @@ export async function listEvents(daysAhead = 7, calendarQuery?: string): Promise
   )
   // User-configured exclusions ("Josh School Day" etc.) — matches event
   // titles and calendar names, applied everywhere events are consumed.
+  // Whole-word phrases only: "Josh" must not swallow "Joshua Porter".
   const hide = getSettings()
     .google.hideTerms.split(',')
-    .map((t) => t.trim().toLowerCase())
+    .map((t) => t.trim())
     .filter(Boolean)
+    .map((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'))
   return all
     .flat()
-    .filter(
-      (e) =>
-        !hide.some(
-          (t) => e.title.toLowerCase().includes(t) || e.calendarName.toLowerCase().includes(t),
-        ),
-    )
+    .filter((e) => !hide.some((re) => re.test(e.title) || re.test(e.calendarName)))
     .sort((a, b) => a.start.localeCompare(b.start))
 }
 
